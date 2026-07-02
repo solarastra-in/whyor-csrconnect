@@ -10,9 +10,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { toast } from 'sonner';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { getUserRoleInfo, Company } from '@/src/lib/userRole';
-import { db, storage } from '@/src/lib/firebase';
+import { db } from '@/src/lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+
 
 export function CompanySettings() {
   const { user } = useAuth();
@@ -107,23 +107,42 @@ export function CompanySettings() {
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0] || !company) return;
     const file = e.target.files[0];
+    
+    // Check file size (limit to 500KB to fit well within Firestore 1MB limit)
+    if (file.size > 500 * 1024) {
+      toast.error('Image is too large. Please upload an image smaller than 500KB.');
+      return;
+    }
+    
     setUploadingLogo(true);
     
     try {
-      const storageRef = ref(storage, `companies/${company.id}/logo_${Date.now()}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      
-      await updateDoc(doc(db, 'companies', company.id), {
-        logoUrl: url
-      });
-      
-      setCompany({ ...company, logoUrl: url } as any);
-      toast.success('Logo uploaded successfully');
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        
+        try {
+          await updateDoc(doc(db, 'companies', company.id), {
+            logoUrl: base64String
+          });
+          
+          setCompany({ ...company, logoUrl: base64String } as any);
+          toast.success('Logo uploaded successfully');
+        } catch (dbError) {
+          console.error(dbError);
+          toast.error('Failed to save logo to database');
+        } finally {
+          setUploadingLogo(false);
+        }
+      };
+      reader.onerror = () => {
+        toast.error('Failed to read file');
+        setUploadingLogo(false);
+      };
+      reader.readAsDataURL(file);
     } catch (error) {
       console.error(error);
-      toast.error('Failed to upload logo');
-    } finally {
+      toast.error('Failed to process image');
       setUploadingLogo(false);
     }
   };
