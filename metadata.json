@@ -1,0 +1,6 @@
+{
+  "name": "CSR Connect",
+  "description": "Enterprise CSR Portal for Charity Onboarding & Corporate Volunteering",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

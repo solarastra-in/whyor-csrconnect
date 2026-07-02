@@ -1,0 +1,47 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isPlatformAdmin() {
+      return isSignedIn() && request.auth.token.email == 'solarastra.in@gmail.com';
+    }
+
+    match /platform/{document=**} {
+      allow read, write: if isPlatformAdmin();
+    }
+
+    match /projectChats/{projectId}/messages/{messageId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /milestones/{milestoneId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /companies/{companyId} {
+      // Platform admin can do anything.
+      // Anyone can read companies to populate the login dropdown.
+      allow read: if true;
+      allow write: if isPlatformAdmin() || (isSignedIn() && request.auth.token.email in resource.data.adminEmails);
+    }
+
+    match /charities/{charityId} {
+      allow read: if true;
+      allow write: if isPlatformAdmin();
+    }
+
+    match /projects/{projectId} {
+      allow read: if true;
+      allow write: if isPlatformAdmin();
+    }
+  }
+}

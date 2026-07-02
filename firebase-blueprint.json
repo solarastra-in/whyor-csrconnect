@@ -1,0 +1,104 @@
+{
+  "entities": {
+    "Company": {
+      "title": "Company",
+      "description": "A registered corporate partner.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the company"
+        },
+        "adminEmails": {
+          "type": "array",
+          "description": "List of email addresses of company admins",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allowedDomains": {
+          "type": "array",
+          "description": "List of allowed email domains for employees",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Timestamp of creation"
+        }
+      },
+      "required": ["name", "adminEmails", "allowedDomains", "createdAt"]
+    },
+    "Charity": {
+      "title": "Charity",
+      "description": "A registered charity/NGO.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "focus": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "rating": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "number"
+        }
+      },
+      "required": ["name", "focus", "location", "createdAt"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "A CSR project submitted by a charity.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "charityId": {
+          "type": "string"
+        },
+        "charityName": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"]
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "number"
+        }
+      },
+      "required": ["name", "charityId", "charityName", "status", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/companies/{companyId}": {
+      "schema": {
+        "$ref": "#/entities/Company"
+      },
+      "description": "Registered companies"
+    },
+    "/charities/{charityId}": {
+      "schema": {
+        "$ref": "#/entities/Charity"
+      },
+      "description": "Registered charities"
+    },
+    "/projects/{projectId}": {
+      "schema": {
+        "$ref": "#/entities/Project"
+      },
+      "description": "CSR Projects"
+    }
+  }
+}
