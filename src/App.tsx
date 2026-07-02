@@ -12,6 +12,7 @@ import { Charities } from './pages/Charities';
 import { CharityOnboarding } from './pages/CharityOnboarding';
 import { Companies } from './pages/Companies';
 import { PlatformSettings } from './pages/PlatformSettings';
+import { PlatformSupport } from './pages/PlatformSupport';
 
 import { EmployeeDashboard } from './pages/EmployeeDashboard';
 import { DiscoverProjects } from './pages/DiscoverProjects';
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="charities" element={<Charities />} />
           <Route path="charities/onboard" element={<CharityOnboarding />} />
           <Route path="companies" element={<Companies />} />
+          <Route path="support" element={<PlatformSupport />} />
           <Route path="settings" element={<PlatformSettings />} />
         </Route>
 

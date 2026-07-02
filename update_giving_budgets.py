@@ -1,4 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import re
+
+with open('src/pages/CompanyGivingBudgets.tsx', 'r') as f:
+    content = f.read()
+
+imports = """import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -13,9 +18,9 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
-import { useAuth } from '@/src/contexts/AuthContext';
+import { useAuth } from '@/src/contexts/AuthContext';"""
 
-const mockEmployees = [
+new_component = """const mockEmployees = [
   { id: 'E001', name: 'John Doe', email: 'john.doe@example.com', allocated: 50000, utilized: 12500, type: 'Standard' },
   { id: 'E002', name: 'Jane Smith', email: 'jane.smith@example.com', allocated: 75000, utilized: 75000, type: 'Executive' },
   { id: 'E003', name: 'Rahul Sharma', email: 'rahul.s@example.com', allocated: 50000, utilized: 0, type: 'Standard' },
@@ -296,4 +301,11 @@ export function CompanyGivingBudgets() {
       </Card>
     </div>
   );
-}
+}"""
+
+content = re.sub(r'import React.*?from \'lucide-react\';\nimport \{ Progress \} from \'@/components/ui/progress\';\nimport \{ Switch \} from \'@/components/ui/switch\';', imports, content, flags=re.DOTALL)
+content = re.sub(r'const mockEmployees = \[.*?export function CompanyGivingBudgets\(\) \{.*', new_component, content, flags=re.DOTALL)
+
+with open('src/pages/CompanyGivingBudgets.tsx', 'w') as f:
+    f.write(content)
+

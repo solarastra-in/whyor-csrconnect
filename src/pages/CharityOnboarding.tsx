@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { db } from '@/src/lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,13 +57,34 @@ export function CharityOnboarding() {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (!file) {
       setErrors({ file: 'Please upload the required legal documents' });
+      toast.error('Please fix the errors before submitting');
       return;
     }
-    // In a real app, this would save to Firestore
-    navigate('/admin/charities');
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      
+      await addDoc(collection(db, 'charities'), {
+        name: formData.orgName,
+        focus: formData.focusArea,
+        location: formData.headquarters,
+        website: formData.website,
+        summary: formData.rawDescription,
+        status: 'pending_verification',
+        promotors: user ? user.email : '',
+        createdAt: new Date().getTime(),
+        activeProjects: []
+      });
+      
+      localStorage.removeItem('charityOnboardingDraft'); toast.success('Charity registration submitted for review!');
+      navigate('/admin/charities');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to submit registration');
+    }
   };
 
   const handleGeneratePurpose = async () => {

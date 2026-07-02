@@ -1,4 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import re
+with open('src/pages/CompanySkillVerification.tsx', 'r') as f:
+    content = f.read()
+
+imports = """import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,9 +10,9 @@ import { toast } from 'sonner';
 import { CheckCircle2, XCircle, FileCheck, ExternalLink, Clock, Loader2 } from 'lucide-react';
 import { collection, getDocs, doc, updateDoc, query, where } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
-import { useAuth } from '@/src/contexts/AuthContext';
+import { useAuth } from '@/src/contexts/AuthContext';"""
 
-export function CompanySkillVerification() {
+new_component = """export function CompanySkillVerification() {
   const { user } = useAuth();
   const [verifications, setVerifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -165,4 +169,10 @@ export function CompanySkillVerification() {
       </div>
     </div>
   );
-}
+}"""
+
+content = re.sub(r'import React.*?from \'lucide-react\';', imports, content, flags=re.DOTALL)
+content = re.sub(r'const mockPendingVerifications = \[.*?export function CompanySkillVerification\(\) \{.*', new_component, content, flags=re.DOTALL)
+
+with open('src/pages/CompanySkillVerification.tsx', 'w') as f:
+    f.write(content)

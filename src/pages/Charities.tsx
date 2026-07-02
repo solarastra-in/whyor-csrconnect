@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { collection, getDocs, doc, updateDoc, addDoc } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { GlobalCSRMap } from '@/src/components/GlobalCSRMap';
 
@@ -86,7 +87,7 @@ export function Charities() {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [charitiesList, setCharitiesList] = useState(mockCharities);
-  const [selectedCharityIds, setSelectedCharityIds] = useState<number[]>([]);
+  const [selectedCharityIds, setSelectedCharityIds] = useState<any[]>([]);
 
   // Edit Charity State
   const [editCharityOpen, setEditCharityOpen] = useState(false);
@@ -98,7 +99,25 @@ export function Charities() {
 
   useEffect(() => {
     fetchProjects();
+    fetchCharities();
   }, []);
+
+  const fetchCharities = async () => {
+    try {
+      const snapshot = await getDocs(collection(db, 'charities'));
+      const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setCharitiesList(prev => {
+        // filter out mocks if they match, or just append. 
+        // to be safe, let's just use fetched if it has items, otherwise mock.
+        // Actually, let's combine them but avoid duplicates if we ran multiple times
+        const mockMap = new Map(mockCharities.map(c => [c.id, c]));
+        fetched.forEach(f => mockMap.set(f.id, f as any));
+        return Array.from(mockMap.values());
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const fetchProjects = async () => {
     try {
@@ -134,7 +153,16 @@ export function Charities() {
     setEditCharityOpen(true);
   };
 
-  const handleEditCharitySubmit = () => {
+  const handleEditCharitySubmit = async () => {
+    if (typeof editingCharity.id === 'string') {
+      try {
+        const { id, activeProjects, ...updateData } = editingCharity;
+        await updateDoc(doc(db, 'charities', id), updateData);
+      } catch (e) {
+        console.error(e);
+        toast.error('Failed to update charity in database');
+      }
+    }
     setCharitiesList(prev => prev.map(c => c.id === editingCharity.id ? editingCharity : c));
     toast.success('Charity details updated');
     setEditCharityOpen(false);
@@ -148,7 +176,7 @@ export function Charities() {
     }
   };
 
-  const handleSelectCharity = (id: number, checked: boolean) => {
+  const handleSelectCharity = (id: any, checked: boolean) => {
     if (checked) {
       setSelectedCharityIds(prev => [...prev, id]);
     } else {
@@ -156,14 +184,36 @@ export function Charities() {
     }
   };
 
-  const handleBulkAction = (action: string) => {
+  const handleBulkAction = async (action: string) => {
     if (selectedCharityIds.length === 0) return;
+    
+    const newStatus = action === 'approve' ? 'approved' : action === 'archive' ? 'archived' : '';
+    
+    if (newStatus) {
+      const auth = getAuth();
+      for (const id of selectedCharityIds) {
+        if (typeof id === 'string') { // It's from Firestore
+          try {
+            await updateDoc(doc(db, 'charities', id), { status: newStatus });
+            if (auth.currentUser) {
+              await addDoc(collection(db, 'platform/auditLog/events'), {
+                action: action === 'approve' ? 'APPROVE_CHARITY' : 'REJECT_CHARITY',
+                charityId: id,
+                performedBy: auth.currentUser.email,
+                timestamp: new Date().getTime()
+              });
+            }
+          } catch(e) {
+            console.error(e);
+          }
+        }
+      }
+    }
     
     setCharitiesList(prev => prev.map(c => {
       if (selectedCharityIds.includes(c.id)) {
         if (action === 'approve') return { ...c, status: 'approved' };
         if (action === 'archive') return { ...c, status: 'archived' };
-        // If categorize, we could open a modal, but for now just show toast
       }
       return c;
     }));

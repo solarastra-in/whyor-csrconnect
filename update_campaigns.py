@@ -1,4 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import re
+with open('src/pages/CompanyCampaigns.tsx', 'r') as f:
+    content = f.read()
+
+imports = """import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Plus, Loader2 } from 'lucide-react';
@@ -6,9 +10,9 @@ import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
-import { useAuth } from '@/src/contexts/AuthContext';
+import { useAuth } from '@/src/contexts/AuthContext';"""
 
-export function CompanyCampaigns() {
+new_component = """export function CompanyCampaigns() {
   const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -159,4 +163,10 @@ export function CompanyCampaigns() {
       </div>
     </div>
   );
-}
+}"""
+
+content = re.sub(r'import \{ Card.*?from \'sonner\';', imports, content, flags=re.DOTALL)
+content = re.sub(r'export function CompanyCampaigns\(\) \{.*', new_component, content, flags=re.DOTALL)
+
+with open('src/pages/CompanyCampaigns.tsx', 'w') as f:
+    f.write(content)

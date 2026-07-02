@@ -1,4 +1,8 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import re
+with open('src/pages/CompanyImpactReports.tsx', 'r') as f:
+    content = f.read()
+
+imports = """import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, FileText, PieChart, TrendingUp, Users, Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -7,9 +11,9 @@ import { ProjectPerformanceAnalytics } from '@/src/components/ProjectPerformance
 import { useState, useEffect } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
-import { useAuth } from '@/src/contexts/AuthContext';
+import { useAuth } from '@/src/contexts/AuthContext';"""
 
-export function CompanyImpactReports() {
+new_component = """export function CompanyImpactReports() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -156,4 +160,10 @@ Generated on: ${new Date().toLocaleDateString()}
       )}
     </div>
   );
-}
+}"""
+
+content = re.sub(r'import \{ Card.*?from \'@/src/components/ProjectPerformanceAnalytics\';', imports, content, flags=re.DOTALL)
+content = re.sub(r'const monthlyImpactData = \[.*?export function CompanyImpactReports\(\) \{.*', new_component, content, flags=re.DOTALL)
+
+with open('src/pages/CompanyImpactReports.tsx', 'w') as f:
+    f.write(content)

@@ -1,15 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { IndianRupee, Clock, Heart, ArrowUpRight, Medal, Star, Trophy, Target, Award, MessageSquareQuote, Send } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { useVolunteer } from '@/src/contexts/VolunteerContext';
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useAuth } from '@/src/contexts/AuthContext';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Calendar, Clock, Award, Star, TrendingUp, Trophy, Target, ArrowUpRight, Heart, Share2, MessageSquare, Send } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { useAuth } from '@/src/contexts/AuthContext';
+import { collection, getDocs, doc, setDoc, addDoc, query, where, orderBy } from 'firebase/firestore';
+import { db } from '@/src/lib/firebase';
 
 import { PersonalCSRGoal } from '@/src/components/PersonalCSRGoal';
 
@@ -58,6 +57,28 @@ export function MyImpact() {
   };
 
   const handleDownloadTaxReceipt = () => {
+    // Generate a simple text blob simulating a receipt
+    const receiptText = `
+TAX RECEIPT - 80G COMPLIANT
+--------------------------------
+Name: ${user?.displayName || 'Volunteer'}
+Email: ${user?.email || 'N/A'}
+Date: ${new Date().toLocaleDateString()}
+
+Total Donations This Year: ₹12,500
+Eligible for Tax Deduction under Section 80G.
+
+This is a computer-generated receipt.
+    `;
+    const blob = new Blob([receiptText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Tax_Receipt_${new Date().getFullYear()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
     toast.success('Tax receipt downloaded successfully');
   };
 

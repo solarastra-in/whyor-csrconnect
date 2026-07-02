@@ -1,13 +1,17 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import re
+with open('src/pages/CompanyEngagement.tsx', 'r') as f:
+    content = f.read()
+
+imports = """import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useState, useEffect } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { useAuth } from '@/src/contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';"""
 
-export function CompanyEngagement() {
+new_component = """export function CompanyEngagement() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [departments, setDepartments] = useState([
@@ -73,4 +77,10 @@ export function CompanyEngagement() {
       )}
     </div>
   );
-}
+}"""
+
+content = re.sub(r'import \{ Card.*?from \'@/components/ui/badge\';', imports, content, flags=re.DOTALL)
+content = re.sub(r'export function CompanyEngagement\(\) \{.*', new_component, content, flags=re.DOTALL)
+
+with open('src/pages/CompanyEngagement.tsx', 'w') as f:
+    f.write(content)

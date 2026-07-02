@@ -12,7 +12,8 @@ export function DashboardLayout() {
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Charities & CSR', path: '/admin/charities', icon: HeartHandshake },
     { name: 'Companies', path: '/admin/companies', icon: Building2 },
-    { name: 'Settings', path: '/admin/settings', icon: Settings },
+    { name: 'Support', path: '/admin/support', icon: MessageSquare },
+  { name: 'Settings', path: '/admin/settings', icon: Settings },
   ];
 
   return (

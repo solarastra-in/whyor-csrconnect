@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { getAuth } from 'firebase/auth';
 import { Loader2, Mail, PlayCircle } from 'lucide-react';
 import { AccessAudit } from '@/src/components/AccessAudit';
 import { doc, getDoc, setDoc } from 'firebase/firestore';

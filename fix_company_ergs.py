@@ -1,4 +1,8 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import re
+with open('src/pages/CompanyERGs.tsx', 'r') as f:
+    content = f.read()
+
+imports = """import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Users, Settings, PlusCircle, BarChart3, TrendingUp } from 'lucide-react';
@@ -7,9 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc, addDoc } from 'firebase/firestore';
-import { db } from '@/src/lib/firebase';
+import { db } from '@/src/lib/firebase';"""
 
-export function CompanyERGs() {
+new_component = """export function CompanyERGs() {
   const [ergs, setErgs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -161,4 +165,10 @@ export function CompanyERGs() {
       </Card>
     </div>
   );
-}
+}"""
+
+content = re.sub(r'import \{ Card.*?from \'sonner\';', imports, content, flags=re.DOTALL)
+content = re.sub(r'const ergs = \[.*\];.*?export function CompanyERGs\(\) \{.*\}', new_component, content, flags=re.DOTALL)
+
+with open('src/pages/CompanyERGs.tsx', 'w') as f:
+    f.write(content)

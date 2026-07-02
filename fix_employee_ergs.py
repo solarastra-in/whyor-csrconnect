@@ -1,4 +1,9 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import re
+with open('src/pages/EmployeeERGs.tsx', 'r') as f:
+    content = f.read()
+
+# Add imports
+imports = """import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Users, Megaphone, Calendar, ArrowRight, HandHeart } from 'lucide-react';
@@ -7,9 +12,10 @@ import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
-import { useAuth } from '@/src/contexts/AuthContext';
+import { useAuth } from '@/src/contexts/AuthContext';"""
 
-export function EmployeeERGs() {
+# Replace mock data with state and fetch logic
+new_component = """export function EmployeeERGs() {
   const [ergs, setErgs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -145,4 +151,10 @@ export function EmployeeERGs() {
       </div>
     </div>
   );
-}
+}"""
+
+content = re.sub(r'import \{ Card.*?from \'sonner\';', imports, content, flags=re.DOTALL)
+content = re.sub(r'const ergs = \[.*\];.*?export function EmployeeERGs\(\) \{.*\}', new_component, content, flags=re.DOTALL)
+
+with open('src/pages/EmployeeERGs.tsx', 'w') as f:
+    f.write(content)

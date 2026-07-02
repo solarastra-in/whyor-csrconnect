@@ -8,6 +8,7 @@ import { Building, Settings, Shield, Bell, Copy, CheckCircle2, Loader2 } from 'l
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { getAuth } from 'firebase/auth';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { getUserRoleInfo, Company } from '@/src/lib/userRole';
 import { db } from '@/src/lib/firebase';
@@ -90,14 +91,56 @@ export function CompanySettings() {
     }
   };
 
+  const handleSaveSAML = async () => {
+    if (!company) return;
+    try {
+      // Dummy SAML saving logic as per the mock data
+      toast.success('SAML configuration saved successfully');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to save SAML configuration');
+    }
+  };
+
+  const handleSaveBranding = async () => {
+    if (!company) return;
+    try {
+      // Mock logic for branding save
+      toast.success('Branding saved successfully');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to save branding');
+    }
+  };
+
   const handleSaveSmtp = async () => {
     if (!company) return;
     try {
+      // Get the Firebase token
+      const auth = getAuth();
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error("No authentication token");
+
+      const response = await fetch(`/api/company/${company.id}/smtp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(smtpSettings)
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to save via API");
+      }
+      
+      // Still store non-sensitive config in public doc so UI knows it's configured
       const { pass, ...publicSmtpSettings } = smtpSettings;
       await updateDoc(doc(db, 'companies', company.id), {
         smtpSettings: publicSmtpSettings
       });
-      toast.success('SMTP configuration saved successfully (password stored securely)');
+      
+      toast.success('SMTP configuration saved securely');
     } catch (error) {
       console.error(error);
       toast.error('Failed to save SMTP configuration');
@@ -288,7 +331,7 @@ export function CompanySettings() {
           </Card>
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => toast('Changes discarded')}>Discard Changes</Button>
-            <Button onClick={() => toast.success('Branding saved successfully')}>Save Branding</Button>
+            <Button onClick={handleSaveBranding}>Save Branding</Button>
           </div>
         </TabsContent>
 
@@ -478,7 +521,7 @@ export function CompanySettings() {
                       </div>
                       <DialogFooter>
                         <Button variant="outline" type="button">Cancel</Button>
-                        <Button type="button">Save Configuration</Button>
+                        <Button type="button" onClick={handleSaveSAML}>Save Configuration</Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>

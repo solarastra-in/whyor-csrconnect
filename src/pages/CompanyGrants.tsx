@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
@@ -42,7 +43,7 @@ export function CompanyGrants() {
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Corporate Grantmaking</h1>
           <p className="text-gray-500 mt-1">Review grant applications from NGOs, allocate funds, and track outcomes.</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">Create Grant Cycle</Button>
+        <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => toast.success('Grant cycle creation would open here')}>Create Grant Cycle</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -113,7 +114,7 @@ export function CompanyGrants() {
                     <div className="flex space-x-2">
                       <Button variant="outline" size="sm" className="h-8"><FileText className="w-4 h-4 mr-1"/> View Pitch</Button>
                       {grant.status === 'pending' && (
-                        <Button variant="default" size="sm" className="h-8 bg-blue-600">Review</Button>
+                        <Button variant="default" size="sm" className="h-8 bg-blue-600" onClick={() => toast.success('Grant review submitted successfully')}>Review</Button>
                       )}
                     </div>
                   </TableCell>

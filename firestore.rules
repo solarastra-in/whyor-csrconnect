@@ -24,7 +24,24 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow write: if isRealUser() && request.auth.uid == userId;
+      // Only allow writes to an explicit allowlist of safe, non-impact fields
+      allow write: if isRealUser() && request.auth.uid == userId &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['name', 'userSkills', 'photoURL', 'notificationPrefs', 'updatedAt']);
+    }
+
+    match /users/{userId}/summary/impact {
+      allow read: if isSignedIn();
+      allow write: if false; // server (Admin SDK) only
+    }
+    
+    match /users/{userId}/reflections/{reflectionId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/impactLedger/{id} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if false; // server (Admin SDK) only
     }
 
     match /users/{userId}/impactLedger/{ledgerId} {
@@ -43,6 +60,10 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    match /ergs/{ergId} {
+      allow read: if isSignedIn();
+      allow write: if isPlatformAdmin() || isRealUser(); // Simplify for demo, ideally company_admin or erg_lead
+    }
     match /companies/{companyId} {
       allow read: if true;
       allow write: if isPlatformAdmin() || (isRealUser() && request.auth.token.email in resource.data.adminEmails);
