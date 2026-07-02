@@ -1,5 +1,5 @@
 {
-  "name": "react-example",
+  "name": "csr-connect",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -26,7 +26,9 @@
     "date-fns": "^4.4.0",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.5.2",
     "firebase": "^12.15.0",
+    "firebase-admin": "^14.1.0",
     "framer-motion": "^12.42.0",
     "i18next": "^26.3.4",
     "i18next-browser-languagedetector": "^8.2.1",

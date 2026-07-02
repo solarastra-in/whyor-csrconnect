@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Award, Star, Trophy, Medal, Heart } from 'lucide-react';
 import { db } from '@/src/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useAuth } from '@/src/contexts/AuthContext';
 
 export interface BadgeDef {
@@ -42,38 +42,30 @@ export function VolunteerProvider({ children }: { children: React.ReactNode }) {
 
   // We can initialize it with 0 or a mock value like 8 to allow users to easily test the 10 hour milestone
   useEffect(() => {
-    // Read from localStorage to persist
-    const stored = localStorage.getItem('volunteer_hours');
-    if (stored) {
-      setTotalHours(parseFloat(stored));
-    } else {
-      // Set to 8 hours initially to demonstrate milestones easily
-      setTotalHours(8); 
-      localStorage.setItem('volunteer_hours', '8');
-    }
+    if (!user) return;
+    
+    // Listen to user's impact summary from Firestore
+    const unsub = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setTotalHours(data.totalHours || 0);
+        setCommunityPoints(data.communityPoints || 0);
+        setMilestonesReached(data.milestonesReached || []);
+        setUserSkillsState(data.userSkills || ['Public Speaking']);
+      } else {
+        // Initialize if doesn't exist
+        setDoc(doc(db, 'users', user.uid), {
+          totalHours: 8,
+          communityPoints: 150,
+          milestonesReached: [],
+          userSkills: ['Public Speaking'],
+          name: user.displayName || user.email || 'User'
+        }, { merge: true });
+      }
+    });
 
-    const storedMilestones = localStorage.getItem('volunteer_milestones');
-    if (storedMilestones) {
-      setMilestonesReached(JSON.parse(storedMilestones));
-    }
-
-    const storedSkills = localStorage.getItem('volunteer_skills');
-    if (storedSkills) {
-      try {
-        setUserSkillsState(JSON.parse(storedSkills));
-      } catch(e) {}
-    } else {
-      setUserSkillsState(['Public Speaking']); // default skill example
-    }
-
-    const storedPoints = localStorage.getItem('volunteer_points');
-    if (storedPoints) {
-      setCommunityPoints(parseInt(storedPoints, 10));
-    } else {
-      setCommunityPoints(150);
-      localStorage.setItem('volunteer_points', '150');
-    }
-  }, []);
+    return () => unsub();
+  }, [user]);
 
   useEffect(() => {
     // Dynamically unlock badges based on hours
@@ -85,9 +77,11 @@ export function VolunteerProvider({ children }: { children: React.ReactNode }) {
     });
   }, [totalHours]);
 
-  const setUserSkills = (skills: string[]) => {
-    setUserSkillsState(skills);
-    localStorage.setItem('volunteer_skills', JSON.stringify(skills));
+  const setUserSkills = async (skills: string[]) => {
+    if (!user) return;
+    try {
+      await setDoc(doc(db, 'users', user.uid), { userSkills: skills }, { merge: true });
+    } catch(e) { console.error('Failed to update skills', e) }
   };
 
   const milestones = [
@@ -96,32 +90,46 @@ export function VolunteerProvider({ children }: { children: React.ReactNode }) {
     { threshold: 100, title: 'Gold Volunteer', icon: <Trophy className="h-6 w-6 text-yellow-500" /> },
   ];
 
-  const addCommunityPoints = (amount: number) => {
-    setCommunityPoints(prev => {
-      const next = prev + amount;
-      localStorage.setItem('volunteer_points', next.toString());
-      return next;
-    });
+  const addCommunityPoints = async (amount: number) => {
+    if (!user) return;
+    try {
+      const token = await user.getIdToken();
+      await fetch('/api/impact/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ type: 'points', amount, description: 'Community engagement' })
+      });
+    } catch(e) { console.error(e) }
   };
 
-  const addHours = (amount: number, projectName: string) => {
-    const newTotal = totalHours + amount;
-    setTotalHours(newTotal);
-    localStorage.setItem('volunteer_hours', newTotal.toString());
+  const addHours = async (amount: number, projectName: string) => {
+    if (!user) {
+      toast.error('You must be logged in to log hours');
+      return;
+    }
+    
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/impact/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ type: 'hours', amount, description: `Pledged hours for ${projectName}` })
+      });
+      
+      if (!res.ok) throw new Error('Failed to log impact');
 
-    toast.success(`Successfully pledged ${amount} hours for ${projectName}!`, {
-      description: `You now have ${newTotal} total volunteer hours.`,
-    });
+      const newTotal = totalHours + amount;
+      
+      toast.success(`Successfully pledged ${amount} hours for ${projectName}!`, {
+        description: `You now have ${newTotal} total volunteer hours.`,
+      });
 
-    // Check milestones
-    milestones.forEach((milestone) => {
-      if (newTotal >= milestone.threshold && !milestonesReached.includes(milestone.threshold)) {
-        // We reached a new milestone
-        setMilestonesReached((prev) => {
-          const next = [...prev, milestone.threshold];
-          localStorage.setItem('volunteer_milestones', JSON.stringify(next));
-          return next;
-        });
+      // Check milestones
+      milestones.forEach(async (milestone) => {
+        if (newTotal >= milestone.threshold && !milestonesReached.includes(milestone.threshold)) {
+          // We reached a new milestone, update db
+          await setDoc(doc(db, 'users', user.uid), { milestonesReached: [...milestonesReached, milestone.threshold] }, { merge: true });
+
 
         // Delay the milestone toast slightly so it shows after the pledge toast
         setTimeout(() => {
@@ -160,6 +168,7 @@ export function VolunteerProvider({ children }: { children: React.ReactNode }) {
         }
       }
     });
+    } catch(e) { console.error('Error logging impact:', e); toast.error('Failed to log impact'); }
   };
 
   return (

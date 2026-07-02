@@ -1,5 +1,4 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
     // Global Safety Net
@@ -11,6 +10,10 @@ service cloud.firestore {
       return request.auth != null;
     }
     
+    function isRealUser() {
+      return isSignedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+    
     function isPlatformAdmin() {
       return isSignedIn() && request.auth.token.email == 'solarastra.in@gmail.com';
     }
@@ -19,19 +22,34 @@ service cloud.firestore {
       allow read, write: if isPlatformAdmin();
     }
 
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isRealUser() && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/impactLedger/{ledgerId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if false; // Only written via server-side API
+    }
+
     match /projectChats/{projectId}/messages/{messageId} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn();
+      allow write: if isRealUser();
     }
 
     match /milestones/{milestoneId} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn();
+      allow create: if isRealUser() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
     }
 
     match /companies/{companyId} {
-      // Platform admin can do anything.
-      // Anyone can read companies to populate the login dropdown.
       allow read: if true;
-      allow write: if isPlatformAdmin() || (isSignedIn() && request.auth.token.email in resource.data.adminEmails);
+      allow write: if isPlatformAdmin() || (isRealUser() && request.auth.token.email in resource.data.adminEmails);
+    }
+    
+    match /companies/{companyId}/secrets/{secretId} {
+      allow read, write: if false; // Only accessed via server-side Admin SDK
     }
 
     match /charities/{charityId} {

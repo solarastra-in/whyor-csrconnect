@@ -18,7 +18,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const token = await user.getIdToken();
+          const response = await fetch('/api/auth/sync-claims', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.updated) {
+              // Force token refresh to pick up new claims
+              await user.getIdToken(true);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to sync claims", err);
+        }
+      }
       setUser(user);
       setLoading(false);
     });

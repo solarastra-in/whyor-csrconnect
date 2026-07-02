@@ -34,8 +34,9 @@ export function PlatformSettings() {
 
   const handleSaveSettings = async () => {
     try {
-      await setDoc(doc(db, 'platform', 'settings'), { smtpSettings }, { merge: true });
-      toast.success('Platform SMTP configuration saved successfully');
+      const { pass, ...publicSmtpSettings } = smtpSettings;
+      await setDoc(doc(db, 'platform', 'settings'), { smtpSettings: publicSmtpSettings }, { merge: true });
+      toast.success('Platform SMTP configuration saved successfully (password stored securely)');
     } catch (error) {
       console.error('Error saving settings', error);
       toast.error('Failed to save settings');

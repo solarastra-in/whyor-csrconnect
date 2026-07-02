@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { db } from '@/src/lib/firebase';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { useAuth } from '@/src/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Trophy, Medal, Star, Users, CheckCircle2 } from 'lucide-react';
@@ -38,6 +41,21 @@ export function Challenges() {
   const [challenges, setChallenges] = useState(initialChallenges);
   const [logValue, setLogValue] = useState('');
   const { totalHours } = useVolunteer();
+  const { user: currentUser } = useAuth();
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+
+  useEffect(() => {
+    const q = query(collection(db, 'users'), orderBy('totalHours', 'desc'), limit(10));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const topUsers = snapshot.docs.map(doc => ({
+        id: doc.id,
+        name: doc.data().name || 'Anonymous',
+        hours: doc.data().totalHours || 0
+      }));
+      setLeaderboard(topUsers);
+    }, (error) => console.error(error));
+    return () => unsub();
+  }, []);
 
   const handleLogActivity = (challengeId: number) => {
     const value = parseInt(logValue);
@@ -157,16 +175,11 @@ export function Challenges() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[
-                  { name: 'Rahul V.', hours: 24, dept: 'Engineering' },
-                  { name: 'Sneha P.', hours: 18, dept: 'HR' },
-                  { name: 'Amit K.', hours: 15, dept: 'Sales' },
-                  { name: 'You', hours: totalHours, dept: 'Engineering' },
-                  { name: 'Priya S.', hours: 10, dept: 'Marketing' },
-                ].sort((a, b) => b.hours - a.hours).map((user, index) => {
+                {leaderboard.map((user, index) => {
                   const rank = index + 1;
+                  const isYou = user.id === currentUser?.uid;
                   return (
-                  <div key={user.name} className={`flex items-center justify-between p-2 rounded-lg ${user.name === 'You' ? 'bg-blue-50 border border-blue-100' : ''}`}>
+                  <div key={user.id} className={`flex items-center justify-between p-2 rounded-lg ${isYou ? 'bg-blue-50 border border-blue-100' : ''}`}>
                     <div className="flex items-center gap-3">
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                         rank === 1 ? 'bg-yellow-100 text-yellow-700' : 
@@ -177,8 +190,7 @@ export function Challenges() {
                         {rank}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                        <p className="text-xs text-gray-500">{user.dept}</p>
+                        <p className="text-sm font-medium text-gray-900">{isYou ? 'You' : user.name}</p>
                       </div>
                     </div>
                     <span className="text-sm font-bold text-gray-700">{user.hours}h</span>

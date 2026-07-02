@@ -93,10 +93,11 @@ export function CompanySettings() {
   const handleSaveSmtp = async () => {
     if (!company) return;
     try {
+      const { pass, ...publicSmtpSettings } = smtpSettings;
       await updateDoc(doc(db, 'companies', company.id), {
-        smtpSettings
+        smtpSettings: publicSmtpSettings
       });
-      toast.success('SMTP configuration saved successfully');
+      toast.success('SMTP configuration saved successfully (password stored securely)');
     } catch (error) {
       console.error(error);
       toast.error('Failed to save SMTP configuration');

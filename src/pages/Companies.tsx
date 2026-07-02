@@ -1,4 +1,4 @@
-import { Building2, Users, ArrowUpRight, Search, CheckCircle2, Plus, Edit2 } from 'lucide-react';
+import { Building2, Users, ArrowUpRight, Search, CheckCircle2, Plus, Edit2, Mail, Globe, Phone, Settings, Shield, Activity, FileText, Target, Briefcase, Heart } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,7 @@ export function Companies() {
   const [editOpen, setEditOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<any>(null);
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchCompanies();
@@ -86,16 +87,31 @@ export function Companies() {
       enableEmployeeSurveys: company.enableEmployeeSurveys || false,
       smtpSettings: company.smtpSettings || { host: '', port: 587, user: '', pass: '', secure: false }
     });
+    setEditErrors({});
     setEditOpen(true);
   };
 
   const handleEditSubmit = async () => {
-    if (!editingCompany || !editingCompany.name || !editingCompany.adminEmails || !editingCompany.allowedDomains) {
-      toast.error("Please fill all required fields (Name, Emails, Domains).");
+    if (!editingCompany) return;
+    const errors: Record<string, string> = {};
+    if (!editingCompany.name?.trim()) errors.name = "Company name is required";
+    if (!editingCompany.adminEmails?.trim()) errors.adminEmails = "Admin emails are required";
+    if (!editingCompany.allowedDomains?.trim()) errors.allowedDomains = "Allowed employee domains are required";
+    
+    if (Object.keys(errors).length > 0) {
+      setEditErrors(errors);
+      toast.error("Please fill all required fields correctly.");
       return;
     }
+    setEditErrors({});
     setIsEditSubmitting(true);
     try {
+      let publicSmtpSettings = editingCompany.smtpSettings;
+      if (publicSmtpSettings) {
+        const { pass, ...rest } = publicSmtpSettings;
+        publicSmtpSettings = rest as any;
+      }
+      
       await updateDoc(doc(db, 'companies', editingCompany.id), {
         name: editingCompany.name,
         adminEmails: editingCompany.adminEmails.split(',').map((e: string) => e.trim().toLowerCase()),
@@ -108,7 +124,7 @@ export function Companies() {
         goals: editingCompany.goals,
         employeeStrength: Number(editingCompany.employeeStrength) || 0,
         enableEmployeeSurveys: editingCompany.enableEmployeeSurveys,
-        smtpSettings: editingCompany.smtpSettings,
+        smtpSettings: publicSmtpSettings,
         updatedAt: Date.now()
       });
       toast.success('Company updated successfully.');
@@ -185,196 +201,285 @@ export function Companies() {
       </div>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Enterprise Partner</DialogTitle>
-            <DialogDescription>
-              Update corporate partner details, goals, and SMTP settings.
-            </DialogDescription>
-          </DialogHeader>
-          {editingCompany && (
-            <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 mb-4">
-                <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                <TabsTrigger value="profile">Profile & Goals</TabsTrigger>
-                <TabsTrigger value="contacts">Contacts</TabsTrigger>
-                <TabsTrigger value="settings">Settings & SMTP</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="basic" className="space-y-4 py-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-name">Company Name *</Label>
-                  <Input
-                    id="edit-name"
-                    value={editingCompany.name}
-                    onChange={(e) => setEditingCompany({...editingCompany, name: e.target.value})}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-adminEmails">Admin Emails (comma-separated) *</Label>
-                  <Input
-                    id="edit-adminEmails"
-                    value={editingCompany.adminEmails}
-                    onChange={(e) => setEditingCompany({...editingCompany, adminEmails: e.target.value})}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-allowedDomains">Allowed Employee Domains (comma-separated) *</Label>
-                  <Input
-                    id="edit-allowedDomains"
-                    value={editingCompany.allowedDomains}
-                    onChange={(e) => setEditingCompany({...editingCompany, allowedDomains: e.target.value})}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-employeeStrength">Total Employee Strength</Label>
-                  <Input
-                    id="edit-employeeStrength"
-                    type="number"
-                    value={editingCompany.employeeStrength}
-                    onChange={(e) => setEditingCompany({...editingCompany, employeeStrength: e.target.value})}
-                  />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="profile" className="space-y-4 py-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-overview">Company Overview</Label>
-                  <Textarea
-                    id="edit-overview"
-                    className="resize-none"
-                    rows={3}
-                    value={editingCompany.overview}
-                    onChange={(e) => setEditingCompany({...editingCompany, overview: e.target.value})}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-whyCSR">Why is CSR Important to them?</Label>
-                  <Textarea
-                    id="edit-whyCSR"
-                    className="resize-none"
-                    rows={3}
-                    value={editingCompany.whyCSRImportant}
-                    onChange={(e) => setEditingCompany({...editingCompany, whyCSRImportant: e.target.value})}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-goals">What they want to achieve (Goals)</Label>
-                  <Textarea
-                    id="edit-goals"
-                    className="resize-none"
-                    rows={3}
-                    value={editingCompany.goals}
-                    onChange={(e) => setEditingCompany({...editingCompany, goals: e.target.value})}
-                  />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="contacts" className="space-y-4 py-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-promoters">Promoters / Key Stakeholders</Label>
-                  <Input
-                    id="edit-promoters"
-                    placeholder="e.g. John Doe (CEO), Jane Smith (CFO)"
-                    value={editingCompany.promoters}
-                    onChange={(e) => setEditingCompany({...editingCompany, promoters: e.target.value})}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-contacts">Main Contacts</Label>
-                  <Textarea
-                    id="edit-contacts"
-                    className="resize-none"
-                    rows={3}
-                    placeholder="Names, Phone numbers, Emails"
-                    value={editingCompany.contacts}
-                    onChange={(e) => setEditingCompany({...editingCompany, contacts: e.target.value})}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-connection">How they want to connect</Label>
-                  <Input
-                    id="edit-connection"
-                    placeholder="e.g. Monthly virtual meetings, Quarterly reports"
-                    value={editingCompany.connectionPreference}
-                    onChange={(e) => setEditingCompany({...editingCompany, connectionPreference: e.target.value})}
-                  />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="settings" className="space-y-6 py-2">
-                <div className="flex items-center justify-between border-b pb-4">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="edit-surveys">Enable Employee Surveys</Label>
-                    <p className="text-sm text-gray-500">Allow sending automated post-project surveys to their employees.</p>
-                  </div>
-                  <Switch
-                    id="edit-surveys"
-                    checked={editingCompany.enableEmployeeSurveys}
-                    onCheckedChange={(checked) => setEditingCompany({...editingCompany, enableEmployeeSurveys: checked})}
-                  />
-                </div>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+          <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
+            <div>
+              <DialogTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Briefcase className="h-5 w-5 text-indigo-600" />
+                Edit Enterprise Partner
+              </DialogTitle>
+              <DialogDescription className="mt-1 text-gray-500">
+                Update corporate partner details, impact goals, and settings.
+              </DialogDescription>
+            </div>
+          </div>
+          
+          <div className="p-6">
+            {editingCompany && (
+              <Tabs defaultValue="basic" className="w-full flex flex-col md:flex-row gap-6">
+                <TabsList className="flex flex-col h-auto w-full md:w-56 bg-transparent space-y-1 p-0">
+                  <TabsTrigger value="basic" className="w-full justify-start px-4 py-2.5 data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 data-[state=active]:shadow-none rounded-md text-gray-600">
+                    <Building2 className="h-4 w-4 mr-2" /> Basic Info
+                  </TabsTrigger>
+                  <TabsTrigger value="profile" className="w-full justify-start px-4 py-2.5 data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 data-[state=active]:shadow-none rounded-md text-gray-600">
+                    <Target className="h-4 w-4 mr-2" /> Profile & Goals
+                  </TabsTrigger>
+                  <TabsTrigger value="contacts" className="w-full justify-start px-4 py-2.5 data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 data-[state=active]:shadow-none rounded-md text-gray-600">
+                    <Users className="h-4 w-4 mr-2" /> Contacts
+                  </TabsTrigger>
+                  <TabsTrigger value="settings" className="w-full justify-start px-4 py-2.5 data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 data-[state=active]:shadow-none rounded-md text-gray-600">
+                    <Settings className="h-4 w-4 mr-2" /> Settings & SMTP
+                  </TabsTrigger>
+                </TabsList>
                 
-                <div className="space-y-4">
-                  <h4 className="text-sm font-semibold text-gray-900 border-b pb-2">Company SMTP Settings</h4>
-                  <p className="text-xs text-gray-500">Configure custom email server for sending notifications to this company's employees.</p>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="smtp-host">Host</Label>
-                      <Input
-                        id="smtp-host"
-                        placeholder="smtp.example.com"
-                        value={editingCompany.smtpSettings?.host}
-                        onChange={(e) => setEditingCompany({...editingCompany, smtpSettings: {...editingCompany.smtpSettings, host: e.target.value}})}
-                      />
+                <div className="flex-1 overflow-hidden">
+                  <TabsContent value="basic" className="space-y-6 m-0 outline-none">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">Core Information</h3>
+                      <div className="space-y-5">
+                        <div className="grid gap-2">
+                          <Label htmlFor="edit-name" className="text-gray-700 font-medium flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-gray-400" /> Company Name <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="edit-name"
+                            value={editingCompany.name}
+                            onChange={(e) => setEditingCompany({...editingCompany, name: e.target.value})}
+                            className={`bg-white ${editErrors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                          />
+                          {editErrors.name && <p className="text-xs text-red-500">{editErrors.name}</p>}
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="edit-employeeStrength" className="text-gray-700 font-medium flex items-center gap-2">
+                            <Users className="h-4 w-4 text-gray-400" /> Total Employee Strength
+                          </Label>
+                          <Input
+                            id="edit-employeeStrength"
+                            type="number"
+                            value={editingCompany.employeeStrength}
+                            onChange={(e) => setEditingCompany({...editingCompany, employeeStrength: e.target.value})}
+                            className="bg-white"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="smtp-port">Port</Label>
-                      <Input
-                        id="smtp-port"
-                        type="number"
-                        placeholder="587"
-                        value={editingCompany.smtpSettings?.port}
-                        onChange={(e) => setEditingCompany({...editingCompany, smtpSettings: {...editingCompany.smtpSettings, port: Number(e.target.value)}})}
-                      />
+
+                    <div className="pt-6 border-t border-gray-100">
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">Access & Security</h3>
+                      <div className="space-y-5">
+                        <div className="grid gap-2">
+                          <Label htmlFor="edit-adminEmails" className="text-gray-700 font-medium flex items-center gap-2">
+                            <Shield className="h-4 w-4 text-gray-400" /> Admin Emails (comma-separated) <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="edit-adminEmails"
+                            value={editingCompany.adminEmails}
+                            onChange={(e) => setEditingCompany({...editingCompany, adminEmails: e.target.value})}
+                            className={`bg-white ${editErrors.adminEmails ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                          />
+                          {editErrors.adminEmails ? (
+                            <p className="text-xs text-red-500">{editErrors.adminEmails}</p>
+                          ) : (
+                            <p className="text-xs text-gray-500">These users will have full administrative access to this company's portal.</p>
+                          )}
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="edit-allowedDomains" className="text-gray-700 font-medium flex items-center gap-2">
+                            <Globe className="h-4 w-4 text-gray-400" /> Allowed Employee Domains <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="edit-allowedDomains"
+                            value={editingCompany.allowedDomains}
+                            onChange={(e) => setEditingCompany({...editingCompany, allowedDomains: e.target.value})}
+                            className={`bg-white ${editErrors.allowedDomains ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                            placeholder="e.g., acme.com, acme.org"
+                          />
+                          {editErrors.allowedDomains ? (
+                            <p className="text-xs text-red-500">{editErrors.allowedDomains}</p>
+                          ) : (
+                            <p className="text-xs text-gray-500">Users signing in with these email domains are automatically recognized as employees.</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="smtp-user">Username</Label>
-                      <Input
-                        id="smtp-user"
-                        value={editingCompany.smtpSettings?.user}
-                        onChange={(e) => setEditingCompany({...editingCompany, smtpSettings: {...editingCompany.smtpSettings, user: e.target.value}})}
-                      />
+                  </TabsContent>
+
+                  <TabsContent value="profile" className="space-y-6 m-0 outline-none">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">Company Profile</h3>
+                      <div className="grid gap-2">
+                        <Label htmlFor="edit-overview" className="text-gray-700 font-medium">Company Overview</Label>
+                        <Textarea
+                          id="edit-overview"
+                          className="resize-none bg-white"
+                          rows={4}
+                          placeholder="Brief description of the company and its primary business..."
+                          value={editingCompany.overview}
+                          onChange={(e) => setEditingCompany({...editingCompany, overview: e.target.value})}
+                        />
+                      </div>
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="smtp-pass">Password</Label>
-                      <Input
-                        id="smtp-pass"
-                        type="password"
-                        value={editingCompany.smtpSettings?.pass}
-                        onChange={(e) => setEditingCompany({...editingCompany, smtpSettings: {...editingCompany.smtpSettings, pass: e.target.value}})}
-                      />
+
+                    <div className="pt-6 border-t border-gray-100">
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">CSR Strategy & Goals</h3>
+                      <div className="space-y-5">
+                        <div className="grid gap-2">
+                          <Label htmlFor="edit-whyCSR" className="text-gray-700 font-medium flex items-center gap-2">
+                            <Heart className="h-4 w-4 text-gray-400" /> Why is CSR Important to them?
+                          </Label>
+                          <Textarea
+                            id="edit-whyCSR"
+                            className="resize-none bg-white"
+                            rows={3}
+                            value={editingCompany.whyCSRImportant}
+                            onChange={(e) => setEditingCompany({...editingCompany, whyCSRImportant: e.target.value})}
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="edit-goals" className="text-gray-700 font-medium flex items-center gap-2">
+                            <Target className="h-4 w-4 text-gray-400" /> What they want to achieve (Goals)
+                          </Label>
+                          <Textarea
+                            id="edit-goals"
+                            className="resize-none bg-white"
+                            rows={3}
+                            value={editingCompany.goals}
+                            onChange={(e) => setEditingCompany({...editingCompany, goals: e.target.value})}
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-2 mt-2">
-                    <Switch
-                      id="smtp-secure"
-                      checked={editingCompany.smtpSettings?.secure}
-                      onCheckedChange={(checked) => setEditingCompany({...editingCompany, smtpSettings: {...editingCompany.smtpSettings, secure: checked}})}
-                    />
-                    <Label htmlFor="smtp-secure">Use Secure Connection (TLS/SSL)</Label>
-                  </div>
+                  </TabsContent>
+
+                  <TabsContent value="contacts" className="space-y-6 m-0 outline-none">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">Stakeholders</h3>
+                      <div className="space-y-5">
+                        <div className="grid gap-2">
+                          <Label htmlFor="edit-promoters" className="text-gray-700 font-medium">Promoters / Key Stakeholders</Label>
+                          <Input
+                            id="edit-promoters"
+                            placeholder="e.g. John Doe (CEO), Jane Smith (CFO)"
+                            value={editingCompany.promoters}
+                            onChange={(e) => setEditingCompany({...editingCompany, promoters: e.target.value})}
+                            className="bg-white"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="edit-contacts" className="text-gray-700 font-medium flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-gray-400" /> Main Contacts
+                          </Label>
+                          <Textarea
+                            id="edit-contacts"
+                            className="resize-none bg-white"
+                            rows={4}
+                            placeholder="Names, Phone numbers, Emails"
+                            value={editingCompany.contacts}
+                            onChange={(e) => setEditingCompany({...editingCompany, contacts: e.target.value})}
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="edit-connection" className="text-gray-700 font-medium">How they want to connect</Label>
+                          <Input
+                            id="edit-connection"
+                            placeholder="e.g. Monthly virtual meetings, Quarterly reports"
+                            value={editingCompany.connectionPreference}
+                            onChange={(e) => setEditingCompany({...editingCompany, connectionPreference: e.target.value})}
+                            className="bg-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="settings" className="space-y-6 m-0 outline-none">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">Features</h3>
+                      <div className="flex items-start justify-between border border-gray-200 bg-white p-4 rounded-lg shadow-sm">
+                        <div className="space-y-1">
+                          <Label htmlFor="edit-surveys" className="text-gray-900 font-medium flex items-center gap-2">
+                            <Activity className="h-4 w-4 text-indigo-500" /> Enable Employee Surveys
+                          </Label>
+                          <p className="text-sm text-gray-500 ml-6">Allow sending automated post-project surveys to their employees.</p>
+                        </div>
+                        <Switch
+                          id="edit-surveys"
+                          checked={editingCompany.enableEmployeeSurveys}
+                          onCheckedChange={(checked) => setEditingCompany({...editingCompany, enableEmployeeSurveys: checked})}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="pt-6 border-t border-gray-100">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Mail className="h-5 w-5 text-gray-600" />
+                        <h3 className="text-lg font-medium text-gray-900">Custom SMTP Configuration</h3>
+                      </div>
+                      <p className="text-sm text-gray-500 mb-4">Configure custom email server for sending notifications to this company's employees.</p>
+                      
+                      <div className="bg-white border border-gray-200 rounded-lg p-5 space-y-5 shadow-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="grid gap-2">
+                            <Label htmlFor="smtp-host" className="text-gray-700 font-medium">Host</Label>
+                            <Input
+                              id="smtp-host"
+                              placeholder="smtp.example.com"
+                              value={editingCompany.smtpSettings?.host}
+                              onChange={(e) => setEditingCompany({...editingCompany, smtpSettings: {...editingCompany.smtpSettings, host: e.target.value}})}
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="smtp-port" className="text-gray-700 font-medium">Port</Label>
+                            <Input
+                              id="smtp-port"
+                              type="number"
+                              placeholder="587"
+                              value={editingCompany.smtpSettings?.port}
+                              onChange={(e) => setEditingCompany({...editingCompany, smtpSettings: {...editingCompany.smtpSettings, port: Number(e.target.value)}})}
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="smtp-user" className="text-gray-700 font-medium">Username</Label>
+                            <Input
+                              id="smtp-user"
+                              placeholder="admin@example.com"
+                              value={editingCompany.smtpSettings?.user}
+                              onChange={(e) => setEditingCompany({...editingCompany, smtpSettings: {...editingCompany.smtpSettings, user: e.target.value}})}
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="smtp-pass" className="text-gray-700 font-medium">Password</Label>
+                            <Input
+                              id="smtp-pass"
+                              type="password"
+                              placeholder="••••••••"
+                              value={editingCompany.smtpSettings?.pass}
+                              onChange={(e) => setEditingCompany({...editingCompany, smtpSettings: {...editingCompany.smtpSettings, pass: e.target.value}})}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2 pt-2">
+                          <Switch
+                            id="smtp-secure"
+                            checked={editingCompany.smtpSettings?.secure}
+                            onCheckedChange={(checked) => setEditingCompany({...editingCompany, smtpSettings: {...editingCompany.smtpSettings, secure: checked}})}
+                          />
+                          <Label htmlFor="smtp-secure" className="text-gray-700 font-medium">Use SSL/TLS (Secure Connection)</Label>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
                 </div>
-              </TabsContent>
-            </Tabs>
-          )}
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button onClick={handleEditSubmit} disabled={isEditSubmitting}>
+              </Tabs>
+            )}
+          </div>
+          
+          <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-end gap-3 rounded-b-lg">
+            <Button variant="outline" onClick={() => setEditOpen(false)} className="bg-white">Cancel</Button>
+            <Button onClick={handleEditSubmit} disabled={isEditSubmitting} className="bg-indigo-600 hover:bg-indigo-700 text-white min-w-[120px]">
               {isEditSubmitting ? 'Saving...' : 'Save Changes'}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 

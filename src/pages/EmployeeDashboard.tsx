@@ -33,7 +33,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { CSRNewsFeed } from '@/src/components/CSRNewsFeed';
 
-function SortableWidget({ id, children, className }: { id: string, children: React.ReactNode, className?: string }) {
+function SortableWidget({ id, children, className }: { id: string, children: React.ReactNode, className?: string, key?: React.Key }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   
   const style = {

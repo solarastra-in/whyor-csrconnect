@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Sparkles, Upload, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import { auth } from '@/src/lib/firebase';
 
 export function CharityOnboarding() {
   const navigate = useNavigate();
@@ -68,11 +69,16 @@ export function CharityOnboarding() {
     
     setIsGenerating(true);
     try {
+      const token = await auth.currentUser?.getIdToken();
       const response = await fetch('/api/ai/draft-purpose', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ description: formData.rawDescription }),
       });
+
       
       const data = await response.json();
       if (data.draft) {
