@@ -1,3 +1,5 @@
+import { useAuth } from '@/src/contexts/AuthContext';
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { useVolunteer } from '@/src/contexts/VolunteerContext';
@@ -17,112 +19,33 @@ import { ProjectChat } from '@/src/components/ProjectChat';
 import { DocumentRepository } from '@/src/components/DocumentRepository';
 import { ProjectQRCode } from '@/src/components/ProjectQRCode';
 import { toast } from 'sonner';
+import { db } from '@/src/lib/firebase';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
-export const mockProjects = [
-  {
-    id: 1,
-    name: 'Clean Ganga Initiative',
-    charity: 'Jal Foundation',
-    location: 'Varanasi',
-    match: '2:1 Company Match',
-    tags: ['Environment', 'Water'],
-    description: 'Help restore the ecological balance of the Ganges through organized cleanup drives and community awareness programs.',
-    image: 'https://images.unsplash.com/photo-1626014903706-5f3333e680a6?q=80&w=600&auto=format&fit=crop',
-    vision: 'Our vision is a pristine Ganges River, free of pollution, sustaining the vibrant life and culture of India for generations to come.',
-    aboutCharity: 'Jal Foundation is a non-profit dedicated to water conservation and river restoration across India, working closely with local communities and experts.',
-    website: 'https://jalfoundation.example.org',
-    contact: {
-      email: 'hello@jalfoundation.example.org',
-      phone: '+91 98765 43210',
-      person: 'Ravi Kumar, Project Lead'
-    },
-    guidelines: [
-      { title: 'Project Brief & Volunteer Expectations', size: '2.4 MB', type: 'PDF' },
-      { title: 'Safety & Emergency Procedures', size: '1.1 MB', type: 'PDF' }
-    ],
-    volunteerRoles: [
-      { id: 'r1', title: 'Riverbank Cleanup Crew', description: 'Join the physical cleanup drive along the ghats. Requires physical stamina.', hoursNeeded: 50, hoursPledged: 20, type: 'On-site', skills: ['Physical Labor'] },
-      { id: 'r2', title: 'Community Awareness Coordinator', description: 'Conduct workshops for locals on waste disposal. Good communication skills needed.', hoursNeeded: 20, hoursPledged: 5, type: 'On-site', skills: ['Public Speaking', 'Hindi'] }
-    ]
-  },
-  {
-    id: 2,
-    name: 'Digital Skills for Youth',
-    charity: 'Vidya Trust',
-    location: 'Pune',
-    match: '1:1 Company Match',
-    tags: ['Education', 'Tech'],
-    description: 'Provide basic computer literacy and coding skills to underprivileged youth in urban slums.',
-    image: 'https://images.unsplash.com/photo-1573164713988-8665fc963095?q=80&w=600&auto=format&fit=crop',
-    vision: 'Empowering the next generation with digital fluency to bridge the inequality gap and open up global opportunities.',
-    aboutCharity: 'Vidya Trust focuses on accessible education, operating 40+ learning centers across Maharashtra to serve marginalized communities.',
-    website: 'https://vidyatrust.example.org',
-    contact: {
-      email: 'outreach@vidyatrust.example.org',
-      phone: '+91 91234 56789',
-      person: 'Anjali Desai, Outreach Coordinator'
-    },
-    guidelines: [
-      { title: 'Curriculum Overview', size: '3.2 MB', type: 'PDF' },
-      { title: 'Mentorship Guide', size: '1.8 MB', type: 'PDF' }
-    ],
-    volunteerRoles: [
-      { id: 'r4', title: 'Weekend Coding Instructor', description: 'Teach basic HTML/CSS to high school students.', hoursNeeded: 40, hoursPledged: 10, type: 'On-site', skills: ['HTML/CSS', 'Teaching'] }
-    ]
-  },
-  {
-    id: 3,
-    name: 'Solar for Villages',
-    charity: 'Green Future',
-    location: 'Rural Rajasthan',
-    match: '1.5:1 Company Match',
-    tags: ['Sustainability', 'Energy'],
-    description: 'Install solar panels in off-grid villages to provide sustainable electricity for homes and schools.',
-    image: 'https://images.unsplash.com/photo-1509391366360-12822a16d004?q=80&w=600&auto=format&fit=crop',
-    vision: 'A future where every remote village in India has access to clean, reliable, and sustainable energy.',
-    aboutCharity: 'Green Future drives grassroots renewable energy projects, specializing in community-owned solar micro-grids.',
-    website: 'https://greenfuture.example.org',
-    contact: {
-      email: 'partnerships@greenfuture.example.org',
-      phone: '+91 99887 76655',
-      person: 'Vikram Singh, Operations Manager'
-    },
-    guidelines: [
-      { title: 'Solar Grid Blueprint', size: '5.1 MB', type: 'PDF' },
-      { title: 'Community Handover Process', size: '800 KB', type: 'PDF' }
-    ],
-    volunteerRoles: [
-      { id: 'r6', title: 'Technical Consultant', description: 'Advise on solar grid architecture and efficiency.', hoursNeeded: 10, hoursPledged: 2, type: 'Remote', skills: ['Electrical Engineering', 'Solar Energy'] }
-    ]
-  },
-  {
-    id: 4,
-    name: 'Urban Afforestation',
-    charity: 'Green Future',
-    location: 'Bangalore',
-    match: '1:1 Company Match',
-    tags: ['Environment', 'Climate'],
-    description: 'Create micro-forests in urban spaces using the Miyawaki method to improve air quality and biodiversity.',
-    image: 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=600&auto=format&fit=crop',
-    vision: 'Transforming concrete jungles into breathable, green ecosystems through rapid-growth native forests.',
-    aboutCharity: 'Green Future (Urban Chapter) partners with civic bodies to reclaim wasteland for intense afforestation.',
-    website: 'https://greenfuture.example.org/urban',
-    contact: {
-      email: 'urban@greenfuture.example.org',
-      phone: '+91 90011 22334',
-      person: 'Meera Reddy, Urban Ecologist'
-    },
-    guidelines: [
-      { title: 'Miyawaki Method Guide', size: '4.5 MB', type: 'PDF' },
-      { title: 'Urban Foraging Safety', size: '1.2 MB', type: 'PDF' }
-    ],
-    volunteerRoles: [
-      { id: 'r8', title: 'Sapling Planter', description: 'Prepare soil and plant native saplings.', hoursNeeded: 200, hoursPledged: 150, type: 'On-site', skills: ['Gardening', 'Physical Labor'] }
-    ]
-  }
-];
 
-const allTags = Array.from(new Set(mockProjects.flatMap(p => p.tags)));
+export interface Project {
+  id: string;
+  name: string;
+  charity: string;
+  location: string;
+  match: string;
+  tags: string[];
+  description: string;
+  image?: string;
+  vision?: string;
+  aboutCharity?: string;
+  website?: string;
+  contact?: {
+    email: string;
+    phone: string;
+    person: string;
+  };
+  guidelines?: { title: string; size: string; type: string }[];
+  volunteerRoles?: { id: string; title: string; description: string; hoursNeeded: number; hoursPledged: number; type: string; skills: string[] }[];
+}
+
+
+
 
 const tomorrow = new Date();
 tomorrow.setHours(tomorrow.getHours() + 23); // 23 hours from now
@@ -137,10 +60,28 @@ export const upcomingSessions = [
 
 export function DiscoverProjects() {
   const { addHours, userSkills } = useVolunteer();
-  const [projectsData, setProjectsData] = useState(mockProjects);
+  const [projectsData, setProjectsData] = useState<Project[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'projects'));
+        const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
+        setProjectsData(fetched);
+        
+        const tags = Array.from(new Set(fetched.flatMap(p => p.tags || [])));
+        setAllTags(tags);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchProjects();
+  }, []);
   const location = useLocation();
+  const { roleInfo } = useAuth();
   const navigate = useNavigate();
-  const isCompanyAdmin = location.pathname.startsWith('/company');
+  const isCompanyAdmin = roleInfo?.role === 'company_admin' || roleInfo?.role === 'platform_admin';
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);

@@ -4,21 +4,8 @@ import { ReactNode, useEffect, useState } from 'react';
 import { getUserRoleInfo, UserRoleInfo } from '@/src/lib/userRole';
 
 export function ProtectedRoute({ children, allowedRoles }: { children: ReactNode, allowedRoles?: string[] }) {
-  const { user, loading } = useAuth();
-  const [roleInfo, setRoleInfo] = useState<UserRoleInfo | null>(null);
-  const [checkingRole, setCheckingRole] = useState(true);
-
-  useEffect(() => {
-    if (user && allowedRoles) {
-      setCheckingRole(true);
-      getUserRoleInfo(user).then(info => {
-        setRoleInfo(info);
-        setCheckingRole(false);
-      });
-    } else {
-      setCheckingRole(false);
-    }
-  }, [user, allowedRoles]);
+  const { user, roleInfo, loading } = useAuth();
+  const checkingRole = false;
 
   if (loading || checkingRole) {
     return (

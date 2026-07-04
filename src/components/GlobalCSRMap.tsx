@@ -13,13 +13,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const mockLocations = [
-  { id: 1, name: 'Vidya Trust', type: 'NGO', lat: 19.0760, lng: 72.8777, location: 'Mumbai, India', focus: 'Education' },
-  { id: 2, name: 'Green Future', type: 'Project', lat: 12.9716, lng: 77.5946, location: 'Bangalore, India', focus: 'Environment' },
-  { id: 3, name: 'Riverbank Cleanup', type: 'Project', lat: 51.5074, lng: -0.1278, location: 'London, UK', focus: 'Environment' },
-  { id: 4, name: 'Global Health Init', type: 'NGO', lat: -1.2921, lng: 36.8219, location: 'Nairobi, Kenya', focus: 'Healthcare' },
-  { id: 5, name: 'Tech for Good', type: 'Project', lat: 37.7749, lng: -122.4194, location: 'San Francisco, USA', focus: 'Digital Skills' },
-];
+const mockLocations: any[] = [];
 
 export function GlobalCSRMap() {
   return (

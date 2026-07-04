@@ -15,13 +15,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { useAuth } from '@/src/contexts/AuthContext';
 
-const mockEmployees = [
-  { id: 'E001', name: 'John Doe', email: 'john.doe@example.com', allocated: 50000, utilized: 12500, type: 'Standard' },
-  { id: 'E002', name: 'Jane Smith', email: 'jane.smith@example.com', allocated: 75000, utilized: 75000, type: 'Executive' },
-  { id: 'E003', name: 'Rahul Sharma', email: 'rahul.s@example.com', allocated: 50000, utilized: 0, type: 'Standard' },
-  { id: 'E004', name: 'Priya Patel', email: 'priya.p@example.com', allocated: 50000, utilized: 20000, type: 'Standard' },
-  { id: 'E005', name: 'Amit Kumar', email: 'amit.k@example.com', allocated: 100000, utilized: 45000, type: 'Custom' },
-];
+const mockEmployees: any[] = [];
 
 export function CompanyGivingBudgets() {
   const { user } = useAuth();

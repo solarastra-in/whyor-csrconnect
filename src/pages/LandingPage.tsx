@@ -66,6 +66,8 @@ export function LandingPage() {
           navigate('/admin');
         } else if (info.role === 'company_admin') {
           navigate('/company');
+        } else if (info.role === 'ngo_admin') {
+          navigate('/ngo');
         } else if (info.role === 'employee' && info.company) {
           // If they selected a specific company, we can check here, but getUserRoleInfo 
           // already does domain matching. The user is allowed if any domain matched.
@@ -78,9 +80,7 @@ export function LandingPage() {
     }
   }, [user, navigate]);
 
-  const handleEmployeeLogin = () => {
-    setShowCompanyDialog(true);
-  };
+  const handleEmployeeLogin = () => { signIn(); };
 
   const proceedWithSelectedCompany = async () => {
     if (!selectedCompanyId) {
@@ -162,7 +162,7 @@ export function LandingPage() {
         {!user ? (
           <div className="mt-12">
             <h2 className="text-2xl font-bold mb-8 text-slate-900">Select your portal to get started</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-left max-w-6xl mx-auto">
               <button onClick={handleEmployeeLogin} className="block group text-left w-full">
                 <Card className="h-full transition-all hover:shadow-md hover:border-blue-300 border-slate-200">
                   <CardHeader>
@@ -190,6 +190,23 @@ export function LandingPage() {
                   {t('landing.nav.onboard')} &rarr;
                 </Link>
               </div>
+              
+              <div className="flex flex-col h-full">
+                <button onClick={signIn} className="block group flex-1 text-left w-full">
+                  <Card className="h-full transition-all hover:shadow-md hover:border-green-300 border-slate-200">
+                    <CardHeader>
+                      <div className="h-12 w-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <HeartHandshake className="h-6 w-6" />
+                      </div>
+                      <CardTitle className="text-lg">NGO / Charity</CardTitle>
+                      <CardDescription>Receive grants & volunteers.</CardDescription>
+                    </CardHeader>
+                  </Card>
+                </button>
+                <Link to="/onboarding/charity" className="text-xs text-green-600 text-center mt-3 hover:underline">
+                  Register NGO &rarr;
+                </Link>
+              </div>
               <button onClick={signIn} className="block group text-left w-full">
                 <Card className="h-full transition-all hover:shadow-md hover:border-slate-400 border-slate-200">
                   <CardHeader>
@@ -208,32 +225,7 @@ export function LandingPage() {
               </Button>
             </div>
 
-            <Dialog open={showCompanyDialog} onOpenChange={setShowCompanyDialog}>
-              <DialogContent className="sm:max-w-xl p-6 sm:p-8">
-                <DialogHeader>
-                  <DialogTitle>Select Your Company</DialogTitle>
-                  <DialogDescription>
-                    Choose your company to log in to your employee portal. We will verify your email domain.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <select
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    value={selectedCompanyId}
-                    onChange={(e) => setSelectedCompanyId(e.target.value)}
-                  >
-                    <option value="" disabled>Select a company</option>
-                    {companies.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex justify-end gap-3 mt-4">
-                  <Button variant="outline" onClick={() => setShowCompanyDialog(false)}>Cancel</Button>
-                  <Button onClick={proceedWithSelectedCompany}>Continue with Google</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+            
           </div>
         ) : (
           <div className="p-8 bg-white rounded-2xl shadow-sm border border-slate-200 mt-8">
@@ -245,6 +237,9 @@ export function LandingPage() {
                   <Button variant="outline" onClick={signOut}>Sign Out</Button>
                   <Link to="/onboarding/company">
                     <Button>Register your Company</Button>
+                  </Link>
+                  <Link to="/onboarding/charity">
+                    <Button variant="secondary">Register your NGO</Button>
                   </Link>
                 </div>
               </div>

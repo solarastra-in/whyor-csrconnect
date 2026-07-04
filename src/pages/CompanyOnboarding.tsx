@@ -23,6 +23,7 @@ export function CompanyOnboarding() {
     portalName: '',
     brandColor: '#2563eb',
     autoMatch: true,
+    allowedDomains: '',
   });
 
   const handleNext = async () => {
@@ -42,7 +43,7 @@ export function CompanyOnboarding() {
           brandColor: formData.brandColor,
           autoMatch: formData.autoMatch,
           adminEmails: [user.email.toLowerCase()],
-          allowedDomains: [user.email.split('@')[1].toLowerCase()],
+          allowedDomains: [user.email.split('@')[1].toLowerCase(), ...formData.allowedDomains.split(',').map(d => d.trim()).filter(Boolean)],
           status: 'pending_review',
           createdAt: new Date().getTime()
         });
@@ -258,7 +259,7 @@ export function CompanyOnboarding() {
                     <p className="text-sm text-gray-600">Alternatively, restrict access to specific email domains.</p>
                     <div className="space-y-2">
                       <Label>Allowed Domains</Label>
-                      <Input placeholder="@acmecorp.com" />
+                      <Input placeholder="acmecorp.com, subsidiary.com" value={formData.allowedDomains} onChange={(e) => setFormData({...formData, allowedDomains: e.target.value})} />
                       <p className="text-xs text-gray-500">Press enter to add multiple domains.</p>
                     </div>
                   </TabsContent>

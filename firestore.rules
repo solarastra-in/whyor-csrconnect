@@ -15,23 +15,48 @@ service cloud.firestore {
     }
     
     function isCompanyMember(companyId) {
-      return isRealUser() && request.auth.token.companyId == companyId;
+      return isRealUser() && (
+        request.auth.token.companyId == companyId ||
+        (exists(/databases/$(database)/documents/companies/$(companyId)) && 
+         request.auth.token.email in get(/databases/$(database)/documents/companies/$(companyId)).data.adminEmails)
+      );
     }
     
     function isPlatformAdmin() {
-      return isSignedIn() && request.auth.token.email == 'solarastra.in@gmail.com';
+      return isSignedIn() && (
+        request.auth.token.email == 'solarastra.in@gmail.com' ||
+        (exists(/databases/$(database)/documents/platformConfig/admins) &&
+         request.auth.token.email in get(/databases/$(database)/documents/platformConfig/admins).data.superAdmins)
+      );
     }
+    
+    function isPlatformStaff() {
+      return isSignedIn() && (
+        isPlatformAdmin() ||
+        (exists(/databases/$(database)/documents/platformConfig/admins) &&
+         request.auth.token.email in get(/databases/$(database)/documents/platformConfig/admins).data.staff)
+      );
+    }
+    
+    function isNgoAdmin(charityId) {
+      return isSignedIn() && (
+        request.auth.token.email in get(/databases/$(database)/documents/charities/$(charityId)).data.adminEmails
+      );
+    }
+  
 
     match /platform/{document=**} {
-      allow read, write: if isPlatformAdmin();
+      allow read, write: if isPlatformStaff() || isPlatformAdmin();
+    }
+    match /platformConfig/{document=**} {
+      allow read: if isPlatformStaff();
+      allow write: if isPlatformAdmin();
     }
 
     match /users/{userId} {
       allow read: if isSignedIn();
       // Only allow writes to an explicit allowlist of safe, non-impact fields
-      allow write: if isRealUser() && request.auth.uid == userId &&
-        request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['name', 'userSkills', 'photoURL', 'notificationPrefs', 'updatedAt']);
+      allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
     match /users/{userId}/summary/impact {
@@ -55,18 +80,18 @@ service cloud.firestore {
 
     match /projectChats/{projectId}/messages/{messageId} {
       allow read: if isSignedIn();
-      allow write: if isRealUser();
+      allow write: if isSignedIn();
     }
 
     match /milestones/{milestoneId} {
       allow read: if isSignedIn();
-      allow create: if isRealUser() && request.resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if false;
     }
 
     match /ergs/{ergId} {
       allow read: if isSignedIn();
-      allow create: if isRealUser();
+      allow create: if isSignedIn();
       allow update, delete: if isPlatformAdmin() || isCompanyMember(resource.data.companyId);
     }
     match /companies/{companyId}/campaigns/{campaignId} {
@@ -79,7 +104,7 @@ service cloud.firestore {
     }
     match /skillVerifications/{id} {
       allow read: if isSignedIn();
-      allow create: if isRealUser() && request.resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if isPlatformAdmin() || (isRealUser() && resource.data.companyId == request.auth.token.companyId);
     }
     match /companies/{companyId} {
@@ -96,12 +121,22 @@ service cloud.firestore {
     match /charities/{charityId} {
       allow read: if true;
       allow create: if isRealUser() && request.resource.data.status == 'pending_verification' && request.resource.data.submittedBy == request.auth.uid;
-      allow update, delete: if isPlatformAdmin();
+      allow update: if isPlatformAdmin() || isNgoAdmin(charityId);
+      allow delete: if isPlatformAdmin();
     }
 
     match /projects/{projectId} {
       allow read: if true;
-      allow write: if isPlatformAdmin();
+      allow write: if isPlatformAdmin() || isPlatformStaff() || (isSignedIn() && request.auth.token.email in get(/databases/$(database)/documents/charities/$(request.resource.data.charityId)).data.adminEmails);
+    }
+    
+    match /commitments/{commitmentId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isSignedIn();
+      allow write: if isPlatformAdmin() || isCompanyMember(request.resource.data.companyId);
     }
     match /grants/{grantId} {
       allow read: if isSignedIn();

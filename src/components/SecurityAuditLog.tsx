@@ -5,58 +5,7 @@ import { Search, Filter, ShieldAlert, UserPlus, Building, Settings as SettingsIc
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const MOCK_AUDIT_LOGS = [
-  {
-    id: 'LOG-001',
-    timestamp: '2026-07-01T10:23:45Z',
-    action: 'Company Onboarded',
-    entity: 'TechCorp India',
-    actor: 'admin@platform.com',
-    ipAddress: '192.168.1.45',
-    status: 'success',
-    type: 'onboarding',
-  },
-  {
-    id: 'LOG-002',
-    timestamp: '2026-07-01T09:15:22Z',
-    action: 'Role Assigned',
-    entity: 'jane.doe@techcorp.in (CSR Admin)',
-    actor: 'admin@platform.com',
-    ipAddress: '192.168.1.45',
-    status: 'success',
-    type: 'role',
-  },
-  {
-    id: 'LOG-003',
-    timestamp: '2026-06-30T16:45:10Z',
-    action: 'Configuration Changed',
-    entity: 'Global matching limit updated to ₹50L',
-    actor: 'superadmin@platform.com',
-    ipAddress: '10.0.0.12',
-    status: 'success',
-    type: 'config',
-  },
-  {
-    id: 'LOG-004',
-    timestamp: '2026-06-30T11:20:05Z',
-    action: 'Failed Login Attempt',
-    entity: 'unknown_user@test.com',
-    actor: 'System',
-    ipAddress: '45.22.11.90',
-    status: 'failure',
-    type: 'security',
-  },
-  {
-    id: 'LOG-005',
-    timestamp: '2026-06-29T14:33:00Z',
-    action: 'API Key Generated',
-    entity: 'TechCorp Integration Key',
-    actor: 'admin@platform.com',
-    ipAddress: '192.168.1.45',
-    status: 'success',
-    type: 'security',
-  }
-];
+const MOCK_AUDIT_LOGS: any[] = [];
 
 const getIconForType = (type: string) => {
   switch (type) {

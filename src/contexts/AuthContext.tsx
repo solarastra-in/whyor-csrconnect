@@ -2,9 +2,11 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { auth, signInWithGoogle, signInAsDemo as firebaseSignInAsDemo, logout } from '@/src/lib/firebase';
 import { toast } from 'sonner';
+import { getUserRoleInfo, UserRoleInfo } from '@/src/lib/userRole';
 
 interface AuthContextType {
   user: User | null;
+  roleInfo: UserRoleInfo | null;
   loading: boolean;
   signIn: () => Promise<void>;
   signInAsDemo: () => Promise<void>;
@@ -15,6 +17,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [roleInfo, setRoleInfo] = useState<UserRoleInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSigningIn, setIsSigningIn] = useState(false);
 
@@ -41,6 +44,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (err) {
           console.error("Failed to sync claims", err);
         }
+      }
+      if (user) {
+        const info = await getUserRoleInfo(user);
+        setRoleInfo(info);
+      } else {
+        setRoleInfo(null);
       }
       setUser(user);
       setLoading(false);
@@ -80,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signInAsDemo, signOut: handleSignOut }}>
+    <AuthContext.Provider value={{ user, roleInfo, loading, signIn, signInAsDemo, signOut: handleSignOut }}>
       {children}
     </AuthContext.Provider>
   );

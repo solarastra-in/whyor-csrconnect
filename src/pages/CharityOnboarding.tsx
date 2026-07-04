@@ -86,6 +86,7 @@ export function CharityOnboarding() {
         status: 'pending_verification',
         promotors: user ? user.email : '',
         submittedBy: user ? user.uid : '',
+        adminEmails: user && user.email ? [user.email.toLowerCase()] : [],
         documentUrl,
         createdAt: new Date().getTime(),
         activeProjects: []

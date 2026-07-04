@@ -14,11 +14,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
 export function EmployeeERGs() {
+  
+  
   const [ergs, setErgs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  
-  // New ERG state
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newErgName, setNewErgName] = useState('');
   const [newErgDescription, setNewErgDescription] = useState('');
@@ -26,81 +27,59 @@ export function EmployeeERGs() {
 
   useEffect(() => {
     if (user) {
-      fetchERGs();
+      import('@/src/lib/userRole').then(({ getUserRoleInfo }) => {
+        getUserRoleInfo(user).then(info => {
+          if (info.company) {
+            setCompanyId(info.company.id);
+            fetchERGs(info.company.id);
+          } else {
+            setLoading(false);
+          }
+        });
+      });
     }
   }, [user]);
 
-  const fetchERGs = async () => {
+  const fetchERGs = async (cid: string) => {
     try {
       setLoading(true);
-      const snapshot = await getDocs(collection(db, 'ergs'));
-      const ergsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      if (ergsData.length === 0) {
-        setErgs([
-          {
-            id: 'mock-1',
-            name: 'Women in Tech (WiT)',
-            description: 'Empowering women across the organization through mentorship, networking, and skill-building.',
-            members: ['mock-user-1', 'mock-user-2'],
-            budgetAllocated: 50000,
-            budgetSpent: 22000,
-            tags: ['Diversity', 'Mentorship'],
-            featuredEvent: 'Annual Leadership Summit'
-          },
-          {
-            id: 'mock-2',
-            name: 'Green Earth Alliance',
-            description: 'Sustainability advocates driving environmental initiatives within the company and our local communities.',
-            members: [],
-            budgetAllocated: 30000,
-            budgetSpent: 12000,
-            tags: ['Sustainability', 'Environment'],
-            featuredEvent: 'Local River Clean-up'
-          }
-        ]);
-      } else {
+      import('firebase/firestore').then(async ({ query, where }) => {
+        const q = query(collection(db, 'ergs'), where('companyId', '==', cid));
+        const snapshot = await getDocs(q);
+        const ergsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setErgs(ergsData);
-      }
+        setLoading(false);
+      });
     } catch (error) {
       console.error("Error fetching ERGs:", error);
       toast.error("Failed to load ERGs");
-    } finally {
       setLoading(false);
     }
   };
 
   const handleCreateErg = async () => {
-    if (!user) return toast.error("Must be logged in");
-    if (!newErgName || !newErgDescription) return toast.error("Please fill in all required fields");
-    
+    if (!companyId) return;
     try {
-      const tags = newErgTags.split(',').map(t => t.trim()).filter(t => t);
       const newErg = {
-        name: newErgName,
-        description: newErgDescription,
-        members: [user.uid],
-        budgetAllocated: 10000, // Default seed budget
-        budgetSpent: 0,
-        tags: tags.length ? tags : ['New ERG'],
-        featuredEvent: 'Kickoff Meeting'
+        name: newErgName || 'New ERG ' + Math.floor(Math.random() * 1000),
+        description: newErgDescription || 'A space to connect and collaborate.',
+        tags: newErgTags.split(',').map(t => t.trim()).filter(Boolean),
+        members: user ? [user.uid] : [],
+        companyId: companyId
       };
-      
       await addDoc(collection(db, 'ergs'), newErg);
-      toast.success('ERG Created Successfully!');
+      toast.success('ERG Created');
       setIsDialogOpen(false);
-      
-      // Reset form
       setNewErgName('');
       setNewErgDescription('');
       setNewErgTags('');
-      
-      fetchERGs();
-    } catch (e) {
+      fetchERGs(companyId);
+    } catch(e) {
       console.error(e);
       toast.error('Failed to create ERG');
     }
   };
+
 
   const handleJoinLeave = async (ergId: string, currentlyJoined: boolean) => {
     if (!user) return toast.error("Must be logged in");
@@ -115,7 +94,7 @@ export function EmployeeERGs() {
         await updateDoc(ergRef, { members: arrayUnion(user.uid) });
         toast.success('Joined ERG');
       }
-      fetchERGs();
+      if (companyId) fetchERGs(companyId);
     } catch (e) {
       console.error(e);
       toast.error('Failed to update membership');

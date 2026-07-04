@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router';
-import { LayoutDashboard, MessageSquare, HeartHandshake, Building2, UserCircle, Settings, Home, LogOut } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, HeartHandshake, Building2, UserCircle, Settings, Home, LogOut , CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { NotificationDrawer } from './NotificationDrawer';
@@ -14,6 +14,7 @@ export function DashboardLayout() {
     { name: 'Companies', path: '/admin/companies', icon: Building2 },
     { name: 'Support', path: '/admin/support', icon: MessageSquare },
   { name: 'Settings', path: '/admin/settings', icon: Settings },
+    { name: 'Payment Audit', path: '/admin/payments', icon: CreditCard },
   ];
 
   return (

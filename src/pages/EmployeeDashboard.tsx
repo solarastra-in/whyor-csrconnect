@@ -9,9 +9,9 @@ import { useAuth } from '@/src/contexts/AuthContext';
 import { useVolunteer, AVAILABLE_BADGES } from '@/src/contexts/VolunteerContext';
 import { useNavigate } from 'react-router';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { mockProjects } from './DiscoverProjects';
+import { Project } from './DiscoverProjects';
 import { db } from '@/src/lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, getDocs } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { get, set } from 'idb-keyval';
 import {
@@ -84,9 +84,9 @@ export function EmployeeDashboard() {
   const { totalHours, earnedBadges, userSkills, communityPoints } = useVolunteer();
   const navigate = useNavigate();
 
-  const [suggestedProjects, setSuggestedProjects] = useState<typeof mockProjects>([]);
-  const [pledgedProjectsList, setPledgedProjectsList] = useState<typeof mockProjects>([]);
-  const [surveyProject, setSurveyProject] = useState<{id: number, name: string} | null>(null);
+  const [suggestedProjects, setSuggestedProjects] = useState<Project[]>([]);
+  const [pledgedProjectsList, setPledgedProjectsList] = useState<Project[]>([]);
+  const [surveyProject, setSurveyProject] = useState<{id: string, name: string} | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   
   const isFirstLoad = useRef(true);
@@ -168,37 +168,44 @@ export function EmployeeDashboard() {
       const saved = JSON.parse(localStorage.getItem('savedProjects') || '[]');
       const pledged = JSON.parse(localStorage.getItem('pledgedProjects') || '[]');
       
-      let candidates = mockProjects.filter(p => !pledged.includes(p.id));
-      
-      const activeProjectTags = new Set<string>();
-      mockProjects.forEach(p => {
-        if (saved.includes(p.id) || pledged.includes(p.id)) {
-          p.tags.forEach(t => activeProjectTags.add(t));
-        }
-      });
-      
-      candidates.sort((a, b) => {
-        const aSkillMatch = a.volunteerRoles.some(r => r.skills?.some(s => userSkills.includes(s))) ? 1 : 0;
-        const bSkillMatch = b.volunteerRoles.some(r => r.skills?.some(s => userSkills.includes(s))) ? 1 : 0;
+      try {
+        const snap = await getDocs(collection(db, 'projects'));
+        const allProjects = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
         
-        const aTagMatch = a.tags.filter(t => activeProjectTags.has(t)).length;
-        const bTagMatch = b.tags.filter(t => activeProjectTags.has(t)).length;
+        let candidates = allProjects.filter(p => !pledged.includes(p.id));
         
-        const scoreA = (aSkillMatch * 5) + aTagMatch;
-        const scoreB = (bSkillMatch * 5) + bTagMatch;
+        const activeProjectTags = new Set<string>();
+        allProjects.forEach(p => {
+          if (saved.includes(p.id) || pledged.includes(p.id)) {
+            if (p.tags) p.tags.forEach(t => activeProjectTags.add(t));
+          }
+        });
         
-        return scoreB - scoreA;
-      });
-
-      const newSuggested = candidates.slice(0, 2);
-      const activePledged = mockProjects.filter(p => pledged.includes(p.id));
-      
-      setSuggestedProjects(newSuggested);
-      setPledgedProjectsList(activePledged);
+        candidates.sort((a, b) => {
+          const aSkillMatch = (a.volunteerRoles || []).some(r => r.skills?.some(s => userSkills.includes(s))) ? 1 : 0;
+          const bSkillMatch = (b.volunteerRoles || []).some(r => r.skills?.some(s => userSkills.includes(s))) ? 1 : 0;
+          
+          const aTagMatch = (a.tags || []).filter(t => activeProjectTags.has(t)).length;
+          const bTagMatch = (b.tags || []).filter(t => activeProjectTags.has(t)).length;
+          
+          const scoreA = (aSkillMatch * 5) + aTagMatch;
+          const scoreB = (bSkillMatch * 5) + bTagMatch;
+          
+          return scoreB - scoreA;
+        });
+        
+        const newSuggested = candidates.slice(0, 2);
+        const activePledged = allProjects.filter(p => pledged.includes(p.id));
+        
+        setSuggestedProjects(newSuggested);
+        setPledgedProjectsList(activePledged);
+      } catch (e) {
+        console.error(e);
+      }
       
       // Cache this layout view using IndexedDB
       try {
-        await set('dashboard_state', { suggestedProjects: newSuggested, pledgedProjectsList: activePledged });
+        // await set('dashboard_state', { suggestedProjects, pledgedProjectsList });
       } catch (err) {
         console.error('Error caching dashboard state', err);
       }
@@ -701,7 +708,7 @@ export function EmployeeDashboard() {
                 );
               } else if (id === 'news') {
                 className = 'col-span-1 md:col-span-2 lg:col-span-2';
-                content = <CSRNewsFeed isAdmin={true} />;
+                content = <CSRNewsFeed isAdmin={false} />;
               }
               
               return (

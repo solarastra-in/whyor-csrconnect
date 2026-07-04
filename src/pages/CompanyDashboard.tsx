@@ -11,14 +11,7 @@ import { Label } from '@/components/ui/label';
 
 import { CSREventsCalendar } from '@/src/components/CSREventsCalendar';
 
-const mockEngagementData = [
-  { month: 'Jan', participation: 20 },
-  { month: 'Feb', participation: 25 },
-  { month: 'Mar', participation: 45 },
-  { month: 'Apr', participation: 52 },
-  { month: 'May', participation: 68 },
-  { month: 'Jun', participation: 75 },
-];
+const mockEngagementData: any[] = [];
 
 export function CompanyDashboard() {
   const [widgets, setWidgets] = useState({

@@ -5,20 +5,7 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'rec
 
 import { SecurityAuditLog } from '@/src/components/SecurityAuditLog';
 
-const mockChartData = [
-  { month: 'Jan', donations: 4000 },
-  { month: 'Feb', donations: 3000 },
-  { month: 'Mar', donations: 2000 },
-  { month: 'Apr', donations: 2780 },
-  { month: 'May', donations: 1890 },
-  { month: 'Jun', donations: 2390 },
-  { month: 'Jul', donations: 3490 },
-  { month: 'Aug', donations: 4500 },
-  { month: 'Sep', donations: 5000 },
-  { month: 'Oct', donations: 6000 },
-  { month: 'Nov', donations: 7200 },
-  { month: 'Dec', donations: 8400 },
-];
+const mockChartData: any[] = [];
 
 const topProjects = [
   { id: 1, name: 'Clean Ganga Initiative', charity: 'Jal Foundation', funds: '₹2.4 Cr', progress: 85 },

@@ -14,74 +14,7 @@ import { collection, getDocs, doc, updateDoc, addDoc } from 'firebase/firestore'
 import { db } from '@/src/lib/firebase';
 import { GlobalCSRMap } from '@/src/components/GlobalCSRMap';
 
-const mockCharities = [
-  { 
-    id: 1, 
-    name: 'Vidya Trust', 
-    focus: 'Education', 
-    location: 'Pune, Maharashtra', 
-    website: 'https://vidyatrust.example.org',
-    promotors: 'Dr. Anil Kumar, Mrs. Sunita Sharma',
-    brief: 'Empowering rural youth through digital literacy.',
-    summary: 'Vidya Trust has been working since 2010 to provide quality education and digital skills to underprivileged children in rural Maharashtra. They operate 50+ computer centers and have reached over 10,000 students.',
-    projects: 12, 
-    rating: 4.8,
-    status: 'approved',
-    activeProjects: [
-      { id: 101, name: 'Digital Skills for Youth', status: 'Funding Active' },
-      { id: 102, name: 'Rural Library Setup', status: 'Volunteers Needed' }
-    ]
-  },
-  { 
-    id: 2, 
-    name: 'Jal Foundation', 
-    focus: 'Environment', 
-    location: 'Varanasi, UP', 
-    website: 'https://jalfoundation.example.org',
-    promotors: 'Rajesh Singh',
-    brief: 'Restoring the ecological balance of major rivers.',
-    summary: 'Jal Foundation focuses on water conservation and river cleaning initiatives across North India. Their primary ongoing project is the cleanup of the Ganga river banks and promoting sustainable waste management among locals.',
-    projects: 5, 
-    rating: 4.9,
-    status: 'approved',
-    activeProjects: [
-      { id: 201, name: 'Clean Ganga Initiative', status: 'Funding Active' }
-    ]
-  },
-  { 
-    id: 3, 
-    name: 'Green Future', 
-    focus: 'Sustainability', 
-    location: 'Bangalore, Karnataka', 
-    website: 'https://greenfuture.example.org',
-    promotors: 'Anita Desai, Rohan Mehta',
-    brief: 'Urban afforestation and renewable energy solutions.',
-    summary: 'Green Future is dedicated to fighting climate change through tree planting campaigns in urban spaces and providing solar energy solutions to remote villages in Karnataka.',
-    projects: 8, 
-    rating: 4.5,
-    status: 'pending',
-    activeProjects: [
-      { id: 301, name: 'Urban Afforestation', status: 'Funding & Volunteers' },
-      { id: 302, name: 'Solar for Villages', status: 'Funding Active' }
-    ]
-  },
-  { 
-    id: 4, 
-    name: 'Asha Healthcare', 
-    focus: 'Health', 
-    location: 'Rural Rajasthan', 
-    website: 'https://ashahealth.example.org',
-    promotors: 'Dr. Vikram Patel',
-    brief: 'Providing accessible healthcare to remote villages.',
-    summary: 'Asha Healthcare operates mobile medical clinics equipped with basic diagnostic tools and medicines, reaching out to isolated communities in rural Rajasthan that lack access to primary healthcare.',
-    projects: 3, 
-    rating: 4.7,
-    status: 'archived',
-    activeProjects: [
-      { id: 401, name: 'Mobile Clinics', status: 'Funding Active' }
-    ]
-  },
-];
+const mockCharities: any[] = [];
 
 export function Charities() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -130,6 +63,21 @@ export function Charities() {
       toast.error("Failed to load projects");
     } finally {
       setLoading(false);
+    }
+  };
+
+  
+  const handleUpdateCharityStatus = async (charityId: string, newStatus: string) => {
+    try {
+      await updateDoc(doc(db, 'charities', charityId), {
+        status: newStatus,
+        updatedAt: Date.now()
+      });
+      toast.success(`Charity ${newStatus} successfully`);
+      fetchCharities();
+    } catch (error) {
+      console.error("Error updating charity status:", error);
+      toast.error("Failed to update charity status");
     }
   };
 
@@ -230,7 +178,7 @@ export function Charities() {
           <p className="text-gray-500">Manage registered CSR entities and their projects.</p>
         </div>
         <Link 
-          to="/admin/charities/onboard"
+          to="/onboarding/charity"
           className="bg-blue-600 text-white px-4 py-2 rounded-md font-medium text-sm hover:bg-blue-700 flex items-center self-start sm:self-auto"
         >
           <Plus className="mr-2 h-4 w-4" />
@@ -341,7 +289,7 @@ export function Charities() {
                         <td className="px-6 py-4 text-right space-x-2">
                           <Button variant="outline" size="sm" onClick={() => { setEditingCharity(charity); setEditCharityOpen(true); }} className="text-gray-600">Edit</Button>
                           {(charity.status === 'pending_verification' || !charity.status) && (
-                              <Button variant="default" size="sm" onClick={() => handleUpdateStatus(charity.id, 'approved')} className="bg-indigo-600">Approve</Button>
+                              <Button variant="default" size="sm" onClick={() => handleUpdateCharityStatus(charity.id, 'approved')} className="bg-indigo-600">Approve</Button>
                           )}
                         </td>
                       </tr>
@@ -465,6 +413,48 @@ export function Charities() {
                       onChange={(e) => setEditingCharity({ ...editingCharity, brief: e.target.value })}
                     />
                   </div>
+                  
+                  <div className="grid gap-2 border-t pt-4 mt-2">
+                    <h3 className="font-medium text-sm">Payment & Portal Configuration</h3>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Platform Fee (%)</Label>
+                    <Input
+                      type="number"
+                      value={editingCharity.paymentConfig?.platformFee || 0}
+                      onChange={(e) => setEditingCharity({ ...editingCharity, paymentConfig: { ...editingCharity.paymentConfig, platformFee: Number(e.target.value) }})}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Allowed Payment Modes</Label>
+                    <select 
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      value={editingCharity.paymentConfig?.paymentMode || 'direct'}
+                      onChange={(e) => setEditingCharity({ ...editingCharity, paymentConfig: { ...editingCharity.paymentConfig, paymentMode: e.target.value }})}
+                    >
+                      <option value="direct">Direct to NGO</option>
+                      <option value="portal">Through Portal</option>
+                      <option value="split">Split (Percentage based)</option>
+                    </select>
+                  </div>
+                  {editingCharity.paymentConfig?.paymentMode === 'split' && (
+                    <div className="grid gap-2">
+                      <Label>Split Percentage to NGO (%)</Label>
+                      <Input
+                        type="number"
+                        value={editingCharity.paymentConfig?.splitPercentage || 0}
+                        onChange={(e) => setEditingCharity({ ...editingCharity, paymentConfig: { ...editingCharity.paymentConfig, splitPercentage: Number(e.target.value) }})}
+                      />
+                    </div>
+                  )}
+                  <div className="grid gap-2">
+                    <Label>NGO Bank Details</Label>
+                    <Input
+                      value={editingCharity.paymentConfig?.bankDetails || ''}
+                      onChange={(e) => setEditingCharity({ ...editingCharity, paymentConfig: { ...editingCharity.paymentConfig, bankDetails: e.target.value }})}
+                    />
+                  </div>
+
                   <div className="grid gap-2">
                     <Label htmlFor="charity-summary">Summary</Label>
                     <textarea

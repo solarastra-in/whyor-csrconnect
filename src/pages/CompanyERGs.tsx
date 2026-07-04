@@ -11,31 +11,46 @@ import { db } from '@/src/lib/firebase';
 import { useAuth } from '@/src/contexts/AuthContext';
 
 export function CompanyERGs() {
+  
   const [ergs, setErgs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const [companyId, setCompanyId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
-      fetchERGs();
+      import('@/src/lib/userRole').then(({ getUserRoleInfo }) => {
+        getUserRoleInfo(user).then(info => {
+          if (info.company) {
+            setCompanyId(info.company.id);
+            fetchERGs(info.company.id);
+          } else {
+            setLoading(false);
+          }
+        });
+      });
     }
   }, [user]);
 
-  const fetchERGs = async () => {
+  const fetchERGs = async (cid: string) => {
     try {
       setLoading(true);
-      const snapshot = await getDocs(collection(db, 'ergs'));
-      const ergsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setErgs(ergsData);
+      import('firebase/firestore').then(async ({ query, where }) => {
+        const q = query(collection(db, 'ergs'), where('companyId', '==', cid));
+        const snapshot = await getDocs(q);
+        const ergsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setErgs(ergsData);
+        setLoading(false);
+      });
     } catch (error) {
       console.error("Error fetching ERGs:", error);
       toast.error("Failed to load ERGs");
-    } finally {
       setLoading(false);
     }
   };
 
   const handleCreateERG = async () => {
+    if (!companyId) return;
     try {
       const newERG = {
         name: 'New ERG ' + Math.floor(Math.random() * 1000),
@@ -45,16 +60,18 @@ export function CompanyERGs() {
         budgetAllocated: 10000,
         budgetSpent: 0,
         status: 'active',
-        tags: ['New']
+        tags: ['New'],
+        companyId: companyId
       };
       await addDoc(collection(db, 'ergs'), newERG);
       toast.success('New ERG created');
-      fetchERGs();
+      fetchERGs(companyId);
     } catch(e) {
       console.error(e);
       toast.error('Failed to create ERG');
     }
   };
+
 
   return (
     <div className="space-y-6">

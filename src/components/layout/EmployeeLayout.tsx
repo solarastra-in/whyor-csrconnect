@@ -8,14 +8,8 @@ import { getUserRoleInfo, UserRoleInfo } from '@/src/lib/userRole';
 
 export function EmployeeLayout() {
   const location = useLocation();
-  const { user, signOut } = useAuth();
-  const [roleInfo, setRoleInfo] = useState<UserRoleInfo | null>(null);
-
-  useEffect(() => {
-    if (user) {
-      getUserRoleInfo(user).then(info => setRoleInfo(info));
-    }
-  }, [user]);
+  const { user, roleInfo, signOut } = useAuth();
+  
 
   const navItems = [
     { name: 'My Dashboard', path: '/employee', icon: Target },

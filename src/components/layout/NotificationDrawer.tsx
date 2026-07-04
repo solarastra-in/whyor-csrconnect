@@ -10,35 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-const MOCK_NOTIFICATIONS = [
-  {
-    id: 1,
-    title: 'Project Deadline Approaching',
-    description: 'The Beach Cleanup Drive needs 5 more volunteers by Friday.',
-    time: '2 hours ago',
-    type: 'warning',
-    read: false,
-    icon: Clock,
-  },
-  {
-    id: 2,
-    title: 'Milestone Achieved!',
-    description: 'Your company just hit 1,000 total volunteer hours this quarter.',
-    time: '5 hours ago',
-    type: 'success',
-    read: false,
-    icon: CheckCircle,
-  },
-  {
-    id: 3,
-    title: 'New Project Added',
-    description: 'A new education initiative was added to the CSR portal.',
-    time: '1 day ago',
-    type: 'info',
-    read: true,
-    icon: Info,
-  },
-];
+const MOCK_NOTIFICATIONS: any[] = [];
 
 export function NotificationDrawer() {
   const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);

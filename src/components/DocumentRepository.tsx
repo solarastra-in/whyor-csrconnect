@@ -13,11 +13,7 @@ interface Document {
   category: string;
 }
 
-const mockDocuments: Document[] = [
-  { id: '1', name: 'Annual_Impact_Report_2025.pdf', type: 'PDF', size: '2.4 MB', uploadDate: '2026-06-15', category: 'Impact Reports' },
-  { id: '2', name: 'Volunteer_Safety_Guidelines.pdf', type: 'PDF', size: '850 KB', uploadDate: '2026-05-20', category: 'Guidelines' },
-  { id: '3', name: 'Project_Alpha_Brief.pdf', type: 'PDF', size: '1.2 MB', uploadDate: '2026-07-01', category: 'Project Briefs' },
-];
+const mockDocuments: Document[] = [];
 
 export function DocumentRepository({ isAdmin = false, projectId }: { isAdmin?: boolean, projectId?: string }) {
   const [documents, setDocuments] = useState<Document[]>(mockDocuments);

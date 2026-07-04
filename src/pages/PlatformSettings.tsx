@@ -14,6 +14,7 @@ import { db } from '@/src/lib/firebase';
 export function PlatformSettings() {
   const [triggeringJob, setTriggeringJob] = useState(false);
   const [smtpSettings, setSmtpSettings] = useState({ host: '', port: 587, user: '', pass: '', secure: false });
+  const [adminSettings, setAdminSettings] = useState({ superAdmins: '', staff: '' });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -21,6 +22,16 @@ export function PlatformSettings() {
       try {
         const docRef = doc(db, 'platform', 'settings');
         const docSnap = await getDoc(docRef);
+        
+        const adminSnap = await getDoc(doc(db, 'platformConfig', 'admins'));
+        if (adminSnap.exists()) {
+          const data = adminSnap.data();
+          setAdminSettings({
+            superAdmins: data.superAdmins ? data.superAdmins.join(', ') : '',
+            staff: data.staff ? data.staff.join(', ') : ''
+          });
+        }
+
         if (docSnap.exists() && docSnap.data().smtpSettings) {
           setSmtpSettings(docSnap.data().smtpSettings);
         }
@@ -36,6 +47,12 @@ export function PlatformSettings() {
   const handleSaveSettings = async () => {
     try {
       const { pass, ...publicSmtpSettings } = smtpSettings;
+      
+      await setDoc(doc(db, 'platformConfig', 'admins'), {
+        superAdmins: adminSettings.superAdmins.split(',').map(s => s.trim()).filter(Boolean),
+        staff: adminSettings.staff.split(',').map(s => s.trim()).filter(Boolean)
+      });
+
       await setDoc(doc(db, 'platform', 'settings'), { smtpSettings: publicSmtpSettings }, { merge: true });
       toast.success('Platform SMTP configuration saved successfully (password stored securely)');
     } catch (error) {
@@ -69,6 +86,32 @@ export function PlatformSettings() {
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Platform Settings</h1>
         <p className="text-gray-500 mt-1">Manage global platform configurations and email delivery.</p>
       </div>
+
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Platform Administrators & Staff</CardTitle>
+          <CardDescription>Manage who has access to the platform console.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Super Admins (comma separated emails)</Label>
+            <Input 
+              placeholder="admin@platform.com, another@platform.com" 
+              value={adminSettings.superAdmins} 
+              onChange={e => setAdminSettings({...adminSettings, superAdmins: e.target.value})} 
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Platform Staff (Reviewers, Ops) (comma separated)</Label>
+            <Input 
+              placeholder="staff@platform.com" 
+              value={adminSettings.staff} 
+              onChange={e => setAdminSettings({...adminSettings, staff: e.target.value})} 
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

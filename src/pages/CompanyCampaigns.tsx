@@ -10,22 +10,30 @@ import { useAuth } from '@/src/contexts/AuthContext';
 
 export function CompanyCampaigns() {
   const { user } = useAuth();
+  
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [companyId, setCompanyId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
-      fetchCampaigns();
+      import('@/src/lib/userRole').then(({ getUserRoleInfo }) => {
+        getUserRoleInfo(user).then(info => {
+          if (info.company) {
+            setCompanyId(info.company.id);
+            fetchCampaigns(info.company.id);
+          } else {
+            setLoading(false);
+          }
+        });
+      });
     }
   }, [user]);
 
-  const fetchCampaigns = async () => {
+  const fetchCampaigns = async (cid: string) => {
     try {
       setLoading(true);
-      const companyDomain = user?.email?.split('@')[1];
-      if (!companyDomain) return;
-
-      const snapshot = await getDocs(collection(db, 'companies', companyDomain, 'campaigns'));
+      const snapshot = await getDocs(collection(db, 'companies', cid, 'campaigns'));
       setCampaigns(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     } catch(e) {
       console.error(e);
@@ -35,10 +43,8 @@ export function CompanyCampaigns() {
   };
 
   const handleCreateCampaign = async () => {
+    if (!companyId) return;
     try {
-      const companyDomain = user?.email?.split('@')[1];
-      if (!companyDomain) return;
-
       const newCampaign = {
         name: 'Disaster Relief Fund ' + new Date().getFullYear(),
         description: 'Special 2:1 matching for disaster relief efforts.',
@@ -49,14 +55,15 @@ export function CompanyCampaigns() {
         createdAt: new Date()
       };
       
-      await addDoc(collection(db, 'companies', companyDomain, 'campaigns'), newCampaign);
+      await addDoc(collection(db, 'companies', companyId, 'campaigns'), newCampaign);
       toast.success('New campaign created');
-      fetchCampaigns();
+      fetchCampaigns(companyId);
     } catch(e) {
       console.error(e);
       toast.error('Failed to create campaign');
     }
   };
+
 
   return (
     <div className="space-y-6">

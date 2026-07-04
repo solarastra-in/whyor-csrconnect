@@ -17,14 +17,19 @@ export function CompanyGrants() {
   const { user } = useAuth();
   const [grants, setGrants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [roleInfo, setRoleInfo] = useState<UserRoleInfo | null>(null);
+  const { roleInfo } = useAuth();
   const [isCreating, setIsCreating] = useState(false);
   const [newGrant, setNewGrant] = useState({ project: '', ngo: '', amountRequested: 0, category: '' });
+
+  const [reviewGrantId, setReviewGrantId] = useState<string | null>(null);
+  const [selectedCharityDetails, setSelectedCharityDetails] = useState<any>(null);
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+
 
   useEffect(() => {
     if (user) {
       getUserRoleInfo(user).then(info => {
-        setRoleInfo(info);
+        
         if (info.company?.id) {
           fetchGrants(info.company.id);
         } else {
@@ -71,6 +76,55 @@ export function CompanyGrants() {
     }
   };
 
+  
+  const openReview = async (grant: any) => {
+    setReviewGrantId(grant.id);
+    setPaymentAmount(grant.amountRequested);
+    
+    // Attempt to find charity by name (in a real app, grant would have charityId)
+    import('firebase/firestore').then(({ collection, query, where, getDocs }) => {
+      const q = query(collection(db, 'charities'), where('name', '==', grant.ngo));
+      getDocs(q).then(snap => {
+        if (!snap.empty) {
+          setSelectedCharityDetails({ id: snap.docs[0].id, ...snap.docs[0].data() });
+        } else {
+          setSelectedCharityDetails(null);
+        }
+      });
+    });
+  };
+  
+  
+  const handleApproveGrant = async () => {
+    if (!reviewGrantId) return;
+    try {
+      await updateDoc(doc(db, 'grants', reviewGrantId), { status: 'approved' });
+      
+      const grant = grants.find(g => g.id === reviewGrantId);
+      
+      // Create payment record
+      await addDoc(collection(db, 'payments'), {
+        referenceId: reviewGrantId,
+        amount: paymentAmount,
+        ngoId: selectedCharityDetails?.id || '',
+        ngoName: grant?.ngo || 'Unknown NGO',
+        companyId: roleInfo?.company?.id || '',
+        companyName: roleInfo?.company?.name || 'Company',
+        status: 'pending',
+        date: new Date().toISOString(),
+        paymentMode: selectedCharityDetails?.paymentConfig?.paymentMode || 'direct',
+        type: 'grant'
+      });
+      
+      toast.success('Grant approved & payment initiated!');
+      setReviewGrantId(null);
+      fetchGrants(roleInfo?.company?.id);
+    } catch (e) {
+      toast.error('Failed to approve grant');
+    }
+  };
+
+
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     try {
       await updateDoc(doc(db, 'grants', id), { status: newStatus });
@@ -82,6 +136,60 @@ export function CompanyGrants() {
   };
   return (
     <div className="space-y-6">
+
+        <Dialog open={!!reviewGrantId} onOpenChange={(open) => !open && setReviewGrantId(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Review & Disburse Grant</DialogTitle>
+              <DialogDescription>Review payment details based on NGO configuration.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Approved Amount (₹)</Label>
+                <Input type="number" value={paymentAmount} onChange={e => setPaymentAmount(Number(e.target.value))} />
+              </div>
+              
+              {selectedCharityDetails ? (
+                <div className="bg-gray-50 p-4 rounded-lg space-y-3 text-sm">
+                  <div className="font-medium text-gray-900 border-b pb-2">NGO Payment Configuration</div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Routing Mode:</span>
+                    <span className="font-medium uppercase">{selectedCharityDetails.paymentConfig?.paymentMode || 'Direct'}</span>
+                  </div>
+                  {selectedCharityDetails.paymentConfig?.paymentMode === 'split' && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">NGO Split:</span>
+                      <span className="font-medium">{selectedCharityDetails.paymentConfig?.splitPercentage}%</span>
+                    </div>
+                  )}
+                  {selectedCharityDetails.paymentConfig?.platformFee > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Platform Fee:</span>
+                      <span className="font-medium">{selectedCharityDetails.paymentConfig?.platformFee}%</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Bank Details:</span>
+                    <span className="font-medium">{selectedCharityDetails.paymentConfig?.bankDetails || 'Not Provided'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">UPI ID:</span>
+                    <span className="font-medium">{selectedCharityDetails.paymentConfig?.upiDetails || 'Not Provided'}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-amber-50 p-4 rounded-lg text-amber-800 text-sm">
+                  Could not find verified payment configuration for this NGO. Payment will be processed manually.
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setReviewGrantId(null)}>Cancel</Button>
+              <Button onClick={handleApproveGrant} className="bg-green-600 hover:bg-green-700">Approve & Disburse</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Corporate Grantmaking</h1>
@@ -200,7 +308,7 @@ export function CompanyGrants() {
                     <div className="flex space-x-2">
                       <Button variant="outline" size="sm" className="h-8"><FileText className="w-4 h-4 mr-1"/> View Pitch</Button>
                       {grant.status === 'pending' && (
-                        <Button variant="default" size="sm" className="h-8 bg-blue-600" onClick={() => toast.success('Grant review submitted successfully')}>Review</Button>
+                        <Button variant="default" size="sm" className="h-8 bg-blue-600" onClick={() => openReview(grant)}>Review</Button>
                       )}
                     </div>
                   </TableCell>

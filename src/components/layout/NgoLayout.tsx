@@ -1,57 +1,49 @@
 import { Outlet, Link, useLocation } from 'react-router';
-import { LayoutDashboard, Users, HeartHandshake, Settings, Activity, FileSpreadsheet, Home, UserCircle, BadgeCheck, LogOut, Wallet , CreditCard } from 'lucide-react';
+import { LayoutDashboard, Users, Home, UserCircle, LogOut, FileText, Settings, HeartHandshake } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/src/contexts/AuthContext';
-import { useTranslation } from 'react-i18next';
 import { NotificationDrawer } from './NotificationDrawer';
 import { useEffect, useState } from 'react';
 import { getUserRoleInfo, UserRoleInfo } from '@/src/lib/userRole';
 
-export function CompanyLayout() {
+export function NgoLayout() {
   const location = useLocation();
-  const { user, roleInfo, signOut } = useAuth();
-  const { t } = useTranslation();
-  
+  const { user, signOut } = useAuth();
+  const [roleInfo, setRoleInfo] = useState<UserRoleInfo | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      getUserRoleInfo(user).then(info => setRoleInfo(info));
+    }
+  }, [user]);
 
   const navItems = [
-    { name: t('dashboard.overview'), path: '/company', icon: LayoutDashboard },
-    { name: t('dashboard.discoverProjects'), path: '/company/projects', icon: HeartHandshake },
-    { name: t('dashboard.employeeEngagement'), path: '/company/engagement', icon: Users },
-    { name: 'Employee Roster', path: '/company/employees', icon: Users },
-    { name: 'Resource Groups', path: '/company/ergs', icon: Users },
-    { name: t('dashboard.skillVerification'), path: '/company/skills', icon: BadgeCheck },
-    { name: t('dashboard.matchingCampaigns'), path: '/company/campaigns', icon: Activity },
-    { name: 'Giving Budgets', path: '/company/budgets', icon: Wallet },
-    { name: 'Employee Commitments', path: '/company/commitments', icon: HeartHandshake },
-    { name: 'Corporate Grants', path: '/company/grants', icon: FileSpreadsheet },
-    { name: t('dashboard.impactReports'), path: '/company/reports', icon: FileSpreadsheet },
-    { name: 'Payment Audit', path: '/company/payments', icon: CreditCard },
-    { name: t('dashboard.settings'), path: '/company/settings', icon: Settings },
+    { name: 'NGO Dashboard', path: '/ngo', icon: LayoutDashboard },
+    { name: 'My Projects', path: '/ngo/projects', icon: HeartHandshake },
+    { name: 'Team / Users', path: '/ngo/team', icon: Users },
+    { name: 'Grant Applications', path: '/ngo/grants', icon: FileText },
+    { name: 'Payment & Settings', path: '/ngo/settings', icon: Settings },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
       <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col text-slate-300">
         <div className="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950">
-          {roleInfo?.company?.logoUrl ? (
-            <img src={roleInfo.company.logoUrl} alt="Logo" className="h-8 w-8 object-contain mr-2 rounded bg-white p-0.5" />
-          ) : (
-            <Activity className="h-5 w-5 text-indigo-400 mr-2" />
-          )}
+          <HeartHandshake className="h-5 w-5 text-green-400 mr-2" />
           <span className="font-semibold text-lg text-white tracking-tight truncate">
-            {roleInfo?.company?.name || 'Admin Console'}
+            {roleInfo?.charity?.name || 'NGO Admin'}
           </span>
         </div>
         
         <div className="px-6 py-4">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Enterprise Admin</p>
-          <p className="text-sm font-medium text-white mt-1">{roleInfo?.company?.name || 'Loading...'}</p>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">NGO Portal</p>
+          <p className="text-sm font-medium text-white mt-1">{roleInfo?.charity?.name || 'Loading...'}</p>
+          <p className="text-xs text-yellow-400 mt-1">{roleInfo?.charity?.status === 'pending_verification' ? 'Pending Approval' : ''}</p>
         </div>
         
         <nav className="flex-1 px-3 space-y-1">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.path || (item.path !== '/company' && location.pathname.startsWith(item.path));
+            const isActive = location.pathname === item.path || (item.path !== '/ngo' && location.pathname.startsWith(item.path));
             const Icon = item.icon;
             
             return (
@@ -61,11 +53,11 @@ export function CompanyLayout() {
                 className={cn(
                   "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
                   isActive 
-                    ? "bg-indigo-600/10 text-indigo-400" 
+                    ? "bg-green-600/10 text-green-400" 
                     : "text-slate-400 hover:bg-slate-800 hover:text-white"
                 )}
               >
-                <Icon className={cn("mr-3 h-5 w-5 flex-shrink-0", isActive ? "text-indigo-400" : "text-slate-500")} />
+                <Icon className={cn("mr-3 h-5 w-5 flex-shrink-0", isActive ? "text-green-400" : "text-slate-500")} />
                 {item.name}
               </Link>
             );
@@ -80,7 +72,7 @@ export function CompanyLayout() {
               <UserCircle className="h-8 w-8 text-slate-400" />
             )}
             <div className="ml-3 truncate">
-              <p className="text-sm font-medium text-white truncate">{user?.displayName || 'Admin User'}</p>
+              <p className="text-sm font-medium text-white truncate">{user?.displayName || 'NGO User'}</p>
               <p className="text-xs text-slate-500 truncate">{user?.email}</p>
             </div>
             <div className="ml-auto flex items-center space-x-2">
@@ -94,8 +86,6 @@ export function CompanyLayout() {
           </div>
         </div>
       </aside>
-
-      {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50">
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-end px-6 shadow-sm z-10">
           <NotificationDrawer />

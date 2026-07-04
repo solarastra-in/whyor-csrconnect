@@ -17,35 +17,7 @@ interface NewsItem {
   likes: number;
 }
 
-const mockNews: NewsItem[] = [
-  {
-    id: '1',
-    title: 'Riverbank Cleanup a Huge Success!',
-    content: 'Thanks to the 120 volunteers who showed up this weekend. We collected over 500kg of plastic waste and planted 50 saplings along the bank. Incredible team effort!',
-    type: 'success',
-    date: '2 hours ago',
-    author: 'Sarah Admin',
-    likes: 24
-  },
-  {
-    id: '2',
-    title: 'New Partnership with Tech for Good',
-    content: 'We are thrilled to announce a new partnership providing digital literacy classes to underprivileged youth. Check out the Discover Projects page to sign up as a mentor.',
-    type: 'announcement',
-    date: '1 day ago',
-    author: 'CSR Committee',
-    likes: 45
-  },
-  {
-    id: '3',
-    title: 'Q3 Volunteer Goals Update',
-    content: 'We are 75% of the way to our company-wide goal of 10,000 volunteer hours for Q3. Keep up the great work everyone, just a little more push needed!',
-    type: 'update',
-    date: '3 days ago',
-    author: 'Global Impact Team',
-    likes: 12
-  }
-];
+const mockNews: NewsItem[] = [];
 
 export function CSRNewsFeed({ isAdmin = false }: { isAdmin?: boolean }) {
   const [news, setNews] = useState<NewsItem[]>(mockNews);
