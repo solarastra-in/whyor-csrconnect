@@ -1,11 +1,13 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, signInAnonymously } from 'firebase/auth';
 import { initializeFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import firebaseConfig from '@/firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const db = initializeFirestore(app, { experimentalForceLongPolling: true }, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
+export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
 
 export const signInAsDemo = async () => {
@@ -24,6 +26,10 @@ export const signInWithGoogle = async () => {
   } catch (error: any) {
     if (error.code === 'auth/popup-closed-by-user') {
       console.log('User closed the sign-in popup.');
+      return null;
+    }
+    if (error.code === 'auth/cancelled-popup-request') {
+      console.log('Multiple popup requests. Ignoring.');
       return null;
     }
     console.error("Error signing in with Google", error);

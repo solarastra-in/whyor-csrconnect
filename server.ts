@@ -273,7 +273,7 @@ async function startServer() {
       if (!projectsSnap.empty) {
         // Find users to notify
         const usersSnap = await db.collection('users').limit(100).get();
-        const users = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const users = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
         
         for (const user of users) {
           if (user.notificationPrefs?.email && user.email) {

@@ -432,7 +432,7 @@ export function CompanySettings() {
                     <DialogTrigger render={<Button variant="outline" />}>
                       Configure SSO
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
+                    <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>SSO Configuration Guide</DialogTitle>
                         <DialogDescription>

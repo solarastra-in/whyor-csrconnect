@@ -1,41 +1,74 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
-
-const grants = [
-  {
-    id: 'GR-2023-01',
-    ngo: 'Jal Foundation',
-    project: 'Clean Ganga Initiative',
-    amountRequested: 5000000,
-    status: 'pending',
-    date: '2023-10-15',
-    category: 'Environment'
-  },
-  {
-    id: 'GR-2023-02',
-    ngo: 'Digital Literacy Trust',
-    project: 'Rural Tech Education',
-    amountRequested: 2500000,
-    status: 'approved',
-    date: '2023-09-22',
-    category: 'Education'
-  },
-  {
-    id: 'GR-2023-03',
-    ngo: 'Food for All',
-    project: 'Urban Food Banks',
-    amountRequested: 1000000,
-    status: 'rejected',
-    date: '2023-08-10',
-    category: 'Poverty'
-  }
-];
+import { FileText, CheckCircle, XCircle, Clock, Plus } from 'lucide-react';
+import { collection, addDoc, getDocs, updateDoc, doc, query, where, orderBy } from 'firebase/firestore';
+import { db } from '@/src/lib/firebase';
+import { useAuth } from '@/src/contexts/AuthContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export function CompanyGrants() {
+  const { user } = useAuth();
+  const [grants, setGrants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newGrant, setNewGrant] = useState({ project: '', ngo: '', amountRequested: 0, category: '' });
+
+  useEffect(() => {
+    if (user) {
+      fetchGrants();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
+
+  const fetchGrants = async () => {
+    try {
+      const q = query(collection(db, 'grants'), orderBy('date', 'desc'));
+      const snapshot = await getDocs(q);
+      const fetchedGrants = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setGrants(fetchedGrants);
+    } catch (error) {
+      console.error("Error fetching grants:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateGrant = async () => {
+    if (!newGrant.project || !newGrant.ngo || newGrant.amountRequested <= 0) {
+      toast.error('Please fill all fields');
+      return;
+    }
+    try {
+      await addDoc(collection(db, 'grants'), {
+        ...newGrant,
+        status: 'pending',
+        date: new Date().toISOString(),
+        companyId: user?.uid || 'company'
+      });
+      toast.success('Grant cycle created!');
+      setIsCreating(false);
+      fetchGrants();
+    } catch (e) {
+      toast.error('Failed to create grant');
+    }
+  };
+
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
+    try {
+      await updateDoc(doc(db, 'grants', id), { status: newStatus });
+      toast.success(`Grant ${newStatus}!`);
+      fetchGrants();
+    } catch (e) {
+      toast.error('Failed to update status');
+    }
+  };
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -94,7 +127,15 @@ export function CompanyGrants() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {grants.map((grant) => (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">Loading grants...</TableCell>
+                </TableRow>
+              ) : grants.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">No grants found.</TableCell>
+                </TableRow>
+              ) : grants.map((grant) => (
                 <TableRow key={grant.id}>
                   <TableCell className="font-mono text-xs">{grant.id}</TableCell>
                   <TableCell>

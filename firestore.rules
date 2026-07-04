@@ -62,11 +62,26 @@ service cloud.firestore {
 
     match /ergs/{ergId} {
       allow read: if isSignedIn();
-      allow write: if isPlatformAdmin() || isRealUser(); // Simplify for demo, ideally company_admin or erg_lead
+      allow create: if isRealUser();
+      allow update, delete: if isRealUser() || isPlatformAdmin();
+    }
+    match /companies/{companyId}/campaigns/{campaignId} {
+      allow read: if isSignedIn();
+      allow write: if isPlatformAdmin() || isRealUser(); 
+    }
+    match /companies/{companyId}/config/{configId} {
+      allow read: if isSignedIn();
+      allow write: if isPlatformAdmin() || isRealUser(); 
+    }
+    match /skillVerifications/{id} {
+      allow read: if isSignedIn();
+      allow write: if isPlatformAdmin() || isRealUser();
     }
     match /companies/{companyId} {
       allow read: if true;
-      allow write: if isPlatformAdmin() || (isRealUser() && request.auth.token.email in resource.data.adminEmails);
+      allow create: if isRealUser() && request.auth.token.email in request.resource.data.adminEmails && request.resource.data.status == 'pending_review';
+      allow update: if isPlatformAdmin() || (isRealUser() && request.auth.token.email in resource.data.adminEmails);
+      allow delete: if isPlatformAdmin();
     }
     
     match /companies/{companyId}/secrets/{secretId} {
@@ -75,12 +90,17 @@ service cloud.firestore {
 
     match /charities/{charityId} {
       allow read: if true;
-      allow write: if isPlatformAdmin();
+      allow create: if isRealUser() && request.resource.data.status == 'pending_verification' && request.resource.data.submittedBy == request.auth.uid;
+      allow update, delete: if isPlatformAdmin();
     }
 
     match /projects/{projectId} {
       allow read: if true;
       allow write: if isPlatformAdmin();
+    }
+    match /grants/{grantId} {
+      allow read: if isSignedIn();
+      allow write: if isRealUser() || isPlatformAdmin();
     }
   }
 }

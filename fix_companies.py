@@ -2,99 +2,85 @@ import re
 with open('src/pages/Companies.tsx', 'r') as f:
     content = f.read()
 
-# Add a mock audit function
-audit_func = """  const handleApprove = async (companyId: string) => {
+# Add a function for updating company status
+if 'handleUpdateStatus' not in content:
+    update_func = """  const handleUpdateStatus = async (id: string, newStatus: string) => {
     try {
-      await updateDoc(doc(db, 'companies', companyId), { status: 'active' });
-      toast.success('Company approved');
+      await updateDoc(doc(db, 'companies', id), { status: newStatus });
+      toast.success('Company status updated!');
       fetchCompanies();
     } catch (e) {
-      toast.error('Failed to approve company');
-    }
-  };
-
-  const handleReject = async (companyId: string) => {
-    try {
-      await updateDoc(doc(db, 'companies', companyId), { status: 'rejected' });
-      toast.success('Company rejected');
-      fetchCompanies();
-    } catch (e) {
-      toast.error('Failed to reject company');
+      toast.error('Failed to update status');
     }
   };"""
+    content = content.replace("const handleEditSubmit = async () => {", update_func + "\n\n  const handleEditSubmit = async () => {")
 
-if "handleApprove" not in content:
-    content = content.replace("  const openEdit = (company: any) => {", audit_func + "\n  const openEdit = (company: any) => {")
-
-# Filter pending vs all
-# Find the mapping of companies
-if "value=\"all\"" not in content:
-    old_tabs = """      <Tabs defaultValue="all" className="w-full">
-        <TabsList>
-          <TabsTrigger value="all">All Companies</TabsTrigger>
-          <TabsTrigger value="active">Active</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="all" className="mt-6">"""
-    
-    new_tabs = """      <Tabs defaultValue="pending" className="w-full">
-        <TabsList>
-          <TabsTrigger value="pending">Pending Review</TabsTrigger>
-          <TabsTrigger value="all">All Companies</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="pending" className="mt-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
-                  <tr>
-                    <th className="px-6 py-4">Company Name</th>
-                    <th className="px-6 py-4">Industry</th>
-                    <th className="px-6 py-4">Admins</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {companies.filter((c:any) => c.status === 'pending_review').map((company: any) => (
-                    <tr key={company.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900">{company.name}</td>
-                      <td className="px-6 py-4 text-gray-600">{company.industry || 'N/A'}</td>
-                      <td className="px-6 py-4 text-gray-600">{company.adminEmails?.join(', ')}</td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          Pending
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button size="sm" variant="outline" className="text-green-600 border-green-200" onClick={() => handleApprove(company.id)}>
-                            Approve
-                          </Button>
-                          <Button size="sm" variant="outline" className="text-red-600 border-red-200" onClick={() => handleReject(company.id)}>
-                            Reject
-                          </Button>
+# Replace the grid render
+start_str = "      {loading ? ("
+end_str = "        </div>\n      )\n    </div>\n  );\n}"
+idx_start = content.find(start_str)
+if idx_start != -1:
+    new_render = """      {loading ? (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        </div>
+      ) : (
+        <Tabs defaultValue="active" className="w-full">
+          <TabsList className="mb-6">
+            <TabsTrigger value="active">Active Companies</TabsTrigger>
+            <TabsTrigger value="pending">Pending Approval</TabsTrigger>
+          </TabsList>
+          
+          {['active', 'pending_review'].map(statusGroup => (
+            <TabsContent key={statusGroup} value={statusGroup === 'active' ? 'active' : 'pending'}>
+              {companies.filter(c => (statusGroup === 'active' ? (c.status === 'active' || !c.status) : c.status === statusGroup)).length === 0 ? (
+                <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
+                  <Building2 className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900">No {statusGroup === 'active' ? 'active' : 'pending'} companies</h3>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {companies.filter(c => (statusGroup === 'active' ? (c.status === 'active' || !c.status) : c.status === statusGroup)).map((company) => (
+                    <Card key={company.id}>
+                      <CardHeader className="pb-4 relative">
+                        <div className="flex justify-between items-start">
+                          <div className="h-10 w-10 bg-gray-100 rounded-md flex items-center justify-center">
+                            <Building2 className="h-5 w-5 text-gray-600" />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-indigo-600" onClick={() => openEditDialog(company)}>
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Badge variant="secondary" className={company.status === 'pending_review' ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-700'}>
+                              {company.status === 'pending_review' ? 'Pending' : 'Active'}
+                            </Badge>
+                          </div>
                         </div>
-                      </td>
-                    </tr>
+                        <CardTitle className="text-xl mt-4">{company.name}</CardTitle>
+                        <CardDescription>
+                          Admins: {company.adminEmails.length} | Domains: {company.allowedDomains.join(', ')}
+                          {company.employeeStrength ? ` | Employees: ${company.employeeStrength}` : ''}
+                        </CardDescription>
+                      </CardHeader>
+                      
+                      {company.status === 'pending_review' && (
+                        <div className="px-6 pb-6 flex gap-2 mt-2 border-t border-gray-100 pt-4">
+                          <Button className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => handleUpdateStatus(company.id!, 'active')}>Approve</Button>
+                          <Button className="flex-1 bg-red-50 text-red-700 hover:bg-red-100 border-red-200" variant="outline" onClick={() => handleUpdateStatus(company.id!, 'rejected')}>Reject</Button>
+                        </div>
+                      )}
+                    </Card>
                   ))}
-                  {companies.filter((c:any) => c.status === 'pending_review').length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                        No companies pending review
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="all" className="mt-6">"""
-    
-    content = content.replace(old_tabs, new_tabs)
+                </div>
+              )}
+            </TabsContent>
+          ))}
+        </Tabs>
+      )}
+    </div>
+  );
+}"""
+    content = content[:idx_start] + new_render
 
 with open('src/pages/Companies.tsx', 'w') as f:
     f.write(content)

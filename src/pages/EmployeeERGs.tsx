@@ -5,18 +5,30 @@ import { Users, Megaphone, Calendar, ArrowRight, HandHeart } from 'lucide-react'
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, arrayUnion, arrayRemove, addDoc } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 export function EmployeeERGs() {
   const [ergs, setErgs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  
+  // New ERG state
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newErgName, setNewErgName] = useState('');
+  const [newErgDescription, setNewErgDescription] = useState('');
+  const [newErgTags, setNewErgTags] = useState('');
 
   useEffect(() => {
-    fetchERGs();
-  }, []);
+    if (user) {
+      fetchERGs();
+    }
+  }, [user]);
 
   const fetchERGs = async () => {
     try {
@@ -24,7 +36,6 @@ export function EmployeeERGs() {
       const snapshot = await getDocs(collection(db, 'ergs'));
       const ergsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
-      // If empty, supply some defaults or just leave empty
       if (ergsData.length === 0) {
         setErgs([
           {
@@ -59,6 +70,38 @@ export function EmployeeERGs() {
     }
   };
 
+  const handleCreateErg = async () => {
+    if (!user) return toast.error("Must be logged in");
+    if (!newErgName || !newErgDescription) return toast.error("Please fill in all required fields");
+    
+    try {
+      const tags = newErgTags.split(',').map(t => t.trim()).filter(t => t);
+      const newErg = {
+        name: newErgName,
+        description: newErgDescription,
+        members: [user.uid],
+        budgetAllocated: 10000, // Default seed budget
+        budgetSpent: 0,
+        tags: tags.length ? tags : ['New ERG'],
+        featuredEvent: 'Kickoff Meeting'
+      };
+      
+      await addDoc(collection(db, 'ergs'), newErg);
+      toast.success('ERG Created Successfully!');
+      setIsDialogOpen(false);
+      
+      // Reset form
+      setNewErgName('');
+      setNewErgDescription('');
+      setNewErgTags('');
+      
+      fetchERGs();
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to create ERG');
+    }
+  };
+
   const handleJoinLeave = async (ergId: string, currentlyJoined: boolean) => {
     if (!user) return toast.error("Must be logged in");
     if (ergId.startsWith('mock-')) return toast.success(currentlyJoined ? "Left ERG (mock)" : "Joined ERG (mock)");
@@ -86,8 +129,59 @@ export function EmployeeERGs() {
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Employee Resource Groups (ERGs)</h1>
           <p className="text-gray-500 mt-1">Connect with like-minded colleagues, drive cultural change, and allocate community budgets.</p>
         </div>
-        <Button onClick={() => toast.success('Starting new ERG workflow...')} className="bg-blue-600 hover:bg-blue-700">Start a New ERG</Button>
+        
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-blue-600 hover:bg-blue-700">Start a New ERG</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-xl p-6 space-y-4">
+            <DialogHeader className="space-y-3">
+              <DialogTitle className="text-2xl font-bold">Start a New ERG</DialogTitle>
+              <DialogDescription className="text-gray-500 text-base">
+                Create a space for employees with shared characteristics or life experiences. 
+                Approved ERGs receive a seed budget to get started.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-6 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name" className="text-sm font-medium">ERG Name <span className="text-red-500">*</span></Label>
+                <Input 
+                  id="name" 
+                  placeholder="e.g., Working Parents Network" 
+                  value={newErgName}
+                  onChange={(e) => setNewErgName(e.target.value)}
+                  className="p-3"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="description" className="text-sm font-medium">Description & Goals <span className="text-red-500">*</span></Label>
+                <Textarea 
+                  id="description" 
+                  placeholder="Describe the mission and what you aim to achieve..." 
+                  className="min-h-[120px] p-3"
+                  value={newErgDescription}
+                  onChange={(e) => setNewErgDescription(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="tags" className="text-sm font-medium">Tags (comma separated)</Label>
+                <Input 
+                  id="tags" 
+                  placeholder="e.g., Parents, Support, Community" 
+                  value={newErgTags}
+                  onChange={(e) => setNewErgTags(e.target.value)}
+                  className="p-3"
+                />
+              </div>
+            </div>
+            <DialogFooter className="mt-6">
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="px-6">Cancel</Button>
+              <Button onClick={handleCreateErg} className="px-6 bg-blue-600 hover:bg-blue-700">Submit Proposal</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading ? (
            <p className="text-gray-500">Loading ERGs...</p>
@@ -97,7 +191,7 @@ export function EmployeeERGs() {
           <Card key={erg.id} className="flex flex-col">
             <CardHeader>
               <div className="flex justify-between items-start mb-2">
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {erg.tags?.map((tag: string) => (
                     <Badge key={tag} variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100">{tag}</Badge>
                   ))}

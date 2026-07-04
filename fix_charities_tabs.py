@@ -1,74 +1,30 @@
+import re
 with open('src/pages/Charities.tsx', 'r') as f:
     content = f.read()
 
-tabs_old = """      <Tabs defaultValue="charities" className="w-full">
-        <TabsList>
-          <TabsTrigger value="charities">Charities & NGOs</TabsTrigger>
-          <TabsTrigger value="projects">Project Submissions</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="charities" className="space-y-6 mt-0">"""
+tabs_imports = """import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';"""
+if 'TabsContent' not in content:
+    content = content.replace("import { Button } from '@/components/ui/button';", "import { Button } from '@/components/ui/button';\n" + tabs_imports)
 
-tabs_new = """      <Tabs defaultValue="pending_charities" className="w-full">
-        <TabsList>
-          <TabsTrigger value="pending_charities">Pending Review</TabsTrigger>
-          <TabsTrigger value="charities">Charities & NGOs</TabsTrigger>
-          <TabsTrigger value="projects">Project Submissions</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="pending_charities" className="space-y-6 mt-0">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
-                  <tr>
-                    <th className="px-6 py-4">NGO Name</th>
-                    <th className="px-6 py-4">Focus Area</th>
-                    <th className="px-6 py-4">Location</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {charitiesList.filter(c => c.status === 'pending_verification').map(charity => (
-                    <tr key={charity.id} className="hover:bg-gray-50/50">
-                      <td className="px-6 py-4 font-medium text-gray-900">{charity.name}</td>
-                      <td className="px-6 py-4 text-gray-600">{charity.focus}</td>
-                      <td className="px-6 py-4 text-gray-600">{charity.location}</td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          Pending
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button size="sm" variant="outline" className="text-green-600 border-green-200 hover:bg-green-50" onClick={() => handleBulkAction('approve')}>
-                            Approve
-                          </Button>
-                          <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => handleBulkAction('archive')}>
-                            Reject
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {charitiesList.filter(c => c.status === 'pending_verification').length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                        No charities pending review
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </TabsContent>
 
-        <TabsContent value="charities" className="space-y-6 mt-0">"""
+# Search for the rendering part.
+# The table is in:
+# <CardContent className="p-0">
+#   <div className="overflow-x-auto">
+#     <Table>
+start_str = "            <CardContent className=\"p-0\">\n              <div className=\"overflow-x-auto\">\n                <Table>"
 
-if 'value="pending_charities"' not in content:
-    content = content.replace(tabs_old, tabs_new)
+# Just add Tabs wrapper around it.
+if 'Tabs defaultValue="all"' not in content:
+    content = content.replace('<div className="overflow-x-auto">', """<Tabs defaultValue="all" className="w-full">
+          <TabsList className="m-4">
+            <TabsTrigger value="all">All Charities</TabsTrigger>
+            <TabsTrigger value="pending_verification">Pending Approval</TabsTrigger>
+            <TabsTrigger value="approved">Approved</TabsTrigger>
+          </TabsList>
+          <TabsContent value="all">
+            <div className="overflow-x-auto">""")
+    content = content.replace('                  </TableBody>\n                </Table>\n              </div>\n            </CardContent>', '                  </TableBody>\n                </Table>\n              </div>\n          </TabsContent>\n          <TabsContent value="pending_verification">\n            <div className="overflow-x-auto">\n                <Table>\n                  <TableHeader>\n                    <TableRow>\n                      <th className="w-12 px-6 py-4">\n                        <input type="checkbox" className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" onChange={(e) => handleSelectAll(e.target.checked)} />\n                      </th>\n                      <th className="px-6 py-4 font-medium text-left">Organization Details</th>\n                      <th className="px-6 py-4 font-medium">Focus Area</th>\n                      <th className="px-6 py-4 font-medium">Status</th>\n                      <th className="px-6 py-4 font-medium text-right">Actions</th>\n                    </TableRow>\n                  </TableHeader>\n                  <TableBody>\n                    {filteredCharities.filter(c => c.status === \'pending_verification\').map((charity) => (\n                      <TableRow key={charity.id} className="hover:bg-gray-50/50">\n                        <TableCell className="px-6">\n                          <input type="checkbox" className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"\n                            checked={selectedCharities.includes(charity.id)}\n                            onChange={(e) => handleSelectCharity(charity.id, e.target.checked)} />\n                        </TableCell>\n                        <TableCell className="px-6">\n                          <div className="flex items-center gap-4">\n                            <div className="h-10 w-10 bg-indigo-50 rounded-lg flex items-center justify-center flex-shrink-0">\n                              <Building2 className="h-5 w-5 text-indigo-600" />\n                            </div>\n                            <div>\n                              <p className="font-semibold text-gray-900">{charity.name}</p>\n                              <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">\n                                <MapPin className="h-3 w-3" /> {charity.location}\n                              </p>\n                            </div>\n                          </div>\n                        </TableCell>\n                        <TableCell className="px-6 text-center text-gray-600">\n                          {charity.focus}\n                        </TableCell>\n                        <TableCell className="px-6 text-center">\n                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 hover:bg-yellow-100`}>\n                            Pending\n                          </span>\n                        </TableCell>\n                        <TableCell className="px-6 text-right space-x-2">\n                          <Button variant="outline" size="sm" onClick={() => { setEditingCharity(charity); setEditModalOpen(true); }} className="text-gray-600">Edit</Button>\n                          <Button variant="default" size="sm" onClick={() => handleBulkAction(\'approve\')} className="bg-indigo-600">Approve</Button>\n                        </TableCell>\n                      </TableRow>\n                    ))}\n                  </TableBody>\n                </Table>\n              </div>\n          </TabsContent>\n          <TabsContent value="approved">\n            <div className="overflow-x-auto">\n                <Table>\n                  <TableHeader>\n                    <TableRow>\n                      <th className="w-12 px-6 py-4">\n                        <input type="checkbox" className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" onChange={(e) => handleSelectAll(e.target.checked)} />\n                      </th>\n                      <th className="px-6 py-4 font-medium text-left">Organization Details</th>\n                      <th className="px-6 py-4 font-medium">Focus Area</th>\n                      <th className="px-6 py-4 font-medium">Status</th>\n                      <th className="px-6 py-4 font-medium text-right">Actions</th>\n                    </TableRow>\n                  </TableHeader>\n                  <TableBody>\n                    {filteredCharities.filter(c => c.status === \'approved\').map((charity) => (\n                      <TableRow key={charity.id} className="hover:bg-gray-50/50">\n                        <TableCell className="px-6">\n                          <input type="checkbox" className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"\n                            checked={selectedCharities.includes(charity.id)}\n                            onChange={(e) => handleSelectCharity(charity.id, e.target.checked)} />\n                        </TableCell>\n                        <TableCell className="px-6">\n                          <div className="flex items-center gap-4">\n                            <div className="h-10 w-10 bg-indigo-50 rounded-lg flex items-center justify-center flex-shrink-0">\n                              <Building2 className="h-5 w-5 text-indigo-600" />\n                            </div>\n                            <div>\n                              <p className="font-semibold text-gray-900">{charity.name}</p>\n                              <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">\n                                <MapPin className="h-3 w-3" /> {charity.location}\n                              </p>\n                            </div>\n                          </div>\n                        </TableCell>\n                        <TableCell className="px-6 text-center text-gray-600">\n                          {charity.focus}\n                        </TableCell>\n                        <TableCell className="px-6 text-center">\n                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100`}>\n                            Approved\n                          </span>\n                        </TableCell>\n                        <TableCell className="px-6 text-right space-x-2">\n                          <Button variant="outline" size="sm" onClick={() => { setEditingCharity(charity); setEditModalOpen(true); }} className="text-gray-600">Edit</Button>\n                        </TableCell>\n                      </TableRow>\n                    ))}\n                  </TableBody>\n                </Table>\n              </div>\n          </TabsContent>\n        </Tabs>\n            </CardContent>')
 
 with open('src/pages/Charities.tsx', 'w') as f:
     f.write(content)

@@ -8,14 +8,18 @@ import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc, addDoc } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
+import { useAuth } from '@/src/contexts/AuthContext';
 
 export function CompanyERGs() {
   const [ergs, setErgs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
-    fetchERGs();
-  }, []);
+    if (user) {
+      fetchERGs();
+    }
+  }, [user]);
 
   const fetchERGs = async () => {
     try {

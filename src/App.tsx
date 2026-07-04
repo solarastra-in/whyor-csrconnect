@@ -34,12 +34,15 @@ import { CompanyGrants } from './pages/CompanyGrants';
 import { CompanyERGs } from './pages/CompanyERGs';
 import { CompanyGivingBudgets } from './pages/CompanyGivingBudgets';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ProjectReminders } from './components/ProjectReminders';
+
 
 export default function App() {
   return (
     <AuthProvider>
       <VolunteerProvider>
         <Toaster position="top-center" richColors expand={true} />
+        <ProjectReminders />
         <BrowserRouter>
           <Routes>
         {/* Landing/Role Selection */}

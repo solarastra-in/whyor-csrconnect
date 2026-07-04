@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Search, MapPin, Heart, Filter, Check, Clock, Star, Calendar as CalendarIcon, Grid, CalendarDays, FileText, Download, FileDown, Upload, Eye, EyeOff } from 'lucide-react';
+import { Search, MapPin, Heart, Filter, Check, Clock, Star, Calendar as CalendarIcon, Grid, CalendarDays, FileText, Download, FileDown, Upload, Eye, EyeOff, CreditCard } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -124,8 +124,11 @@ export const mockProjects = [
 
 const allTags = Array.from(new Set(mockProjects.flatMap(p => p.tags)));
 
-const upcomingSessions = [
-  { id: 1, date: '2026-07-05T09:00:00Z', title: 'Riverbank Cleanup Crew Orientation', project: 'Clean Ganga Initiative', type: 'Session' },
+const tomorrow = new Date();
+tomorrow.setHours(tomorrow.getHours() + 23); // 23 hours from now
+
+export const upcomingSessions = [
+  { id: 1, date: tomorrow.toISOString(), title: 'Riverbank Cleanup Crew Orientation', project: 'Clean Ganga Initiative', type: 'Session' },
   { id: 2, date: '2026-07-10T17:00:00Z', title: 'Registration Deadline', project: 'Clean Ganga Initiative', type: 'Deadline' },
   { id: 3, date: '2026-07-12T10:00:00Z', title: 'Coding Bootcamp Kickoff', project: 'Digital Skills for Youth', type: 'Session' },
   { id: 4, date: '2026-07-15T12:00:00Z', title: 'Sapling Planting Deadline', project: 'Urban Afforestation', type: 'Deadline' },
@@ -149,7 +152,7 @@ export function DiscoverProjects() {
   const [hiddenProjects, setHiddenProjects] = useState<number[]>([]);
   const [newComment, setNewComment] = useState('');
   
-  const [donateStep, setDonateStep] = useState<'amount' | 'game' | 'complete'>('amount');
+  const [donateStep, setDonateStep] = useState<'amount' | 'payment' | 'game' | 'complete'>('amount');
   const [donateMultiplier, setDonateMultiplier] = useState<number | null>(null);
 
   const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
@@ -605,7 +608,7 @@ export function DiscoverProjects() {
                         <DialogTrigger render={<Button className="flex-1 bg-blue-600 text-white hover:bg-blue-700 transition-colors" />}>
                           Donate
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="sm:max-w-xl p-6 sm:p-8">
                           <DialogHeader>
                             <DialogTitle>Donate to {project.name}</DialogTitle>
                             <DialogDescription>
@@ -636,12 +639,44 @@ export function DiscoverProjects() {
                                 <Button 
                                   type="button" 
                                   disabled={!donateAmount || isNaN(Number(donateAmount)) || Number(donateAmount) <= 0}
-                                  onClick={() => setDonateStep('game')}
+                                  onClick={() => setDonateStep('payment')}
                                 >
-                                  Continue to Match Game
+                                  Proceed to Payment
                                 </Button>
                               </DialogFooter>
                             </>
+                          )}
+
+                          {donateStep === 'payment' && (
+                            <div className="py-8 text-center space-y-6">
+                              <div className="mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                                <CreditCard className="h-8 w-8 text-blue-600 animate-pulse" />
+                              </div>
+                              <h3 className="text-xl font-bold text-gray-900">Processing Payment</h3>
+                              <p className="text-gray-500">Connecting to Razorpay secure gateway...</p>
+                              
+                              <div className="max-w-xs mx-auto space-y-3 mt-6">
+                                <Button 
+                                  className="w-full bg-blue-600 hover:bg-blue-700" 
+                                  onClick={() => {
+                                    toast.success('Payment successful via Razorpay (Simulated)');
+                                    setDonateStep('game');
+                                  }}
+                                >
+                                  Simulate Success
+                                </Button>
+                                <Button 
+                                  variant="outline"
+                                  className="w-full text-red-600 border-red-200 hover:bg-red-50" 
+                                  onClick={() => {
+                                    toast.error('Payment cancelled');
+                                    setDonateStep('amount');
+                                  }}
+                                >
+                                  Cancel Payment
+                                </Button>
+                              </div>
+                            </div>
                           )}
 
                           {donateStep === 'game' && (
@@ -682,7 +717,7 @@ export function DiscoverProjects() {
                       <DialogTrigger render={<Button variant="outline" className="flex-1 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors" />}>
                         {isCompanyAdmin ? 'Manage Volunteering' : 'Volunteer'}
                       </DialogTrigger>
-                      <DialogContent className={isCompanyAdmin ? "max-w-2xl" : ""}>
+                      <DialogContent className={isCompanyAdmin ? "sm:max-w-2xl p-6 sm:p-8" : "sm:max-w-xl p-6 sm:p-8"}>
                         <DialogHeader>
                           <DialogTitle>{isCompanyAdmin ? 'Manage Volunteer Roles for ' + project.name : 'Volunteer for ' + project.name}</DialogTitle>
                           <DialogDescription>

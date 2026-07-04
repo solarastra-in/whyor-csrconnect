@@ -92,6 +92,16 @@ export function Companies() {
     setEditOpen(true);
   };
 
+    const handleUpdateStatus = async (id: string, newStatus: string) => {
+    try {
+      await updateDoc(doc(db, 'companies', id), { status: newStatus });
+      toast.success('Company status updated!');
+      fetchCompanies();
+    } catch (e) {
+      toast.error('Failed to update status');
+    }
+  };
+
   const handleEditSubmit = async () => {
     if (!editingCompany) return;
     const errors: Record<string, string> = {};
@@ -150,7 +160,7 @@ export function Companies() {
           <DialogTrigger render={<Button className="flex items-center gap-2" />}>
             <Plus className="h-4 w-4" /> Register Partner
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-xl p-6 sm:p-8">
             <DialogHeader>
               <DialogTitle>Register New Company</DialogTitle>
               <DialogDescription>
@@ -488,54 +498,58 @@ export function Companies() {
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
         </div>
-      ) : companies.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
-          <Building2 className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900">No companies found</h3>
-          <p className="text-gray-500 mb-4">Register your first corporate partner.</p>
-          <Button onClick={() => setOpen(true)}>Register Partner</Button>
-        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {companies.map((company) => (
-            <Card key={company.id}>
-              <CardHeader className="pb-4 relative">
-                <div className="flex justify-between items-start">
-                  <div className="h-10 w-10 bg-gray-100 rounded-md flex items-center justify-center">
-                    <Building2 className="h-5 w-5 text-gray-600" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-indigo-600" onClick={() => openEditDialog(company)}>
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Badge variant="secondary" className="bg-green-50 text-green-700 hover:bg-green-100">
-                      Active
-                    </Badge>
-                  </div>
+        <Tabs defaultValue="active" className="w-full">
+          <TabsList className="mb-6">
+            <TabsTrigger value="active">Active Companies</TabsTrigger>
+            <TabsTrigger value="pending">Pending Approval</TabsTrigger>
+          </TabsList>
+          
+          {['active', 'pending_review'].map(statusGroup => (
+            <TabsContent key={statusGroup} value={statusGroup === 'active' ? 'active' : 'pending'}>
+              {companies.filter(c => (statusGroup === 'active' ? (c.status === 'active' || !c.status) : c.status === statusGroup)).length === 0 ? (
+                <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
+                  <Building2 className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900">No {statusGroup === 'active' ? 'active' : 'pending'} companies</h3>
                 </div>
-                <CardTitle className="text-xl mt-4">{company.name}</CardTitle>
-                <CardDescription>
-                  Admins: {company.adminEmails.length} | Domains: {company.allowedDomains.join(', ')}
-                  {company.employeeStrength ? ` | Employees: ${company.employeeStrength}` : ''}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1 flex items-center">
-                      <Users className="h-3 w-3 mr-1" /> Active Vols
-                    </p>
-                    <p className="font-semibold">0</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Total Impact</p>
-                    <p className="font-semibold text-green-600">₹0</p>
-                  </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {companies.filter(c => (statusGroup === 'active' ? (c.status === 'active' || !c.status) : c.status === statusGroup)).map((company) => (
+                    <Card key={company.id}>
+                      <CardHeader className="pb-4 relative">
+                        <div className="flex justify-between items-start">
+                          <div className="h-10 w-10 bg-gray-100 rounded-md flex items-center justify-center">
+                            <Building2 className="h-5 w-5 text-gray-600" />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-indigo-600" onClick={() => openEditDialog(company)}>
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Badge variant="secondary" className={company.status === 'pending_review' ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-700'}>
+                              {company.status === 'pending_review' ? 'Pending' : 'Active'}
+                            </Badge>
+                          </div>
+                        </div>
+                        <CardTitle className="text-xl mt-4">{company.name}</CardTitle>
+                        <CardDescription>
+                          Admins: {company.adminEmails.length} | Domains: {company.allowedDomains.join(', ')}
+                          {company.employeeStrength ? ` | Employees: ${company.employeeStrength}` : ''}
+                        </CardDescription>
+                      </CardHeader>
+                      
+                      {company.status === 'pending_review' && (
+                        <div className="px-6 pb-6 flex gap-2 mt-2 border-t border-gray-100 pt-4">
+                          <Button className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => handleUpdateStatus(company.id!, 'active')}>Approve</Button>
+                          <Button className="flex-1 bg-red-50 text-red-700 hover:bg-red-100 border-red-200" variant="outline" onClick={() => handleUpdateStatus(company.id!, 'rejected')}>Reject</Button>
+                        </div>
+                      )}
+                    </Card>
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
+              )}
+            </TabsContent>
           ))}
-        </div>
+        </Tabs>
       )}
     </div>
   );

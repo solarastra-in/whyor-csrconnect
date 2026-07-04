@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router';
-import { Plus, Search, Filter, MapPin, ExternalLink, ArrowRight, CheckCircle, XCircle, Edit2, Archive, Tag, CheckSquare } from 'lucide-react';
+import { Plus, Search, Filter, MapPin, ExternalLink, ArrowRight, CheckCircle, XCircle, Edit2, Archive, Tag, CheckSquare, Building2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -111,7 +111,7 @@ export function Charities() {
         // to be safe, let's just use fetched if it has items, otherwise mock.
         // Actually, let's combine them but avoid duplicates if we ran multiple times
         const mockMap = new Map(mockCharities.map(c => [c.id, c]));
-        fetched.forEach(f => mockMap.set(f.id, f as any));
+        fetched.forEach(f => mockMap.set(f.id as unknown as number, f as any));
         return Array.from(mockMap.values());
       });
     } catch (error) {
@@ -281,86 +281,74 @@ export function Charities() {
             )}
           </div>
 
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
+          <Tabs defaultValue="all" className="w-full">
+          <TabsList className="m-4">
+            <TabsTrigger value="all">All Charities</TabsTrigger>
+            <TabsTrigger value="pending_verification">Pending Approval</TabsTrigger>
+            <TabsTrigger value="approved">Approved</TabsTrigger>
+          </TabsList>
+          <TabsContent value="all">
+            <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
                   <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b">
                     <tr>
-                      <th className="px-6 py-4 font-medium w-12">
-                        <input 
-                          type="checkbox" 
-                          className="rounded border-gray-300"
-                          checked={selectedCharityIds.length === charitiesList.length && charitiesList.length > 0}
-                          onChange={(e) => handleSelectAll(e.target.checked)}
-                        />
+                      <th className="w-12 px-6 py-4">
+                        <input type="checkbox" className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" onChange={(e) => handleSelectAll(e.target.checked)} />
                       </th>
-                      <th className="px-6 py-4 font-medium">NGO Name</th>
+                      <th className="px-6 py-4 font-medium text-left">Organization Details</th>
                       <th className="px-6 py-4 font-medium">Focus Area</th>
-                      <th className="px-6 py-4 font-medium">Location</th>
                       <th className="px-6 py-4 font-medium">Status</th>
                       <th className="px-6 py-4 font-medium text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {charitiesList.map((charity) => (
-                      <tr 
-                        key={charity.id} 
-                        className={`border-b hover:bg-gray-50 cursor-pointer ${selectedCharityIds.includes(charity.id) ? 'bg-indigo-50/30' : ''}`}
-                        onClick={() => { setSelectedCharity(charity); setViewCharityOpen(true); }}
-                      >
-                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                          <input 
-                            type="checkbox" 
-                            className="rounded border-gray-300"
+                      <tr key={charity.id} className="border-b hover:bg-gray-50/50">
+                        <td className="px-6 py-4">
+                          <input type="checkbox" className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                             checked={selectedCharityIds.includes(charity.id)}
-                            onChange={(e) => handleSelectCharity(charity.id, e.target.checked)}
-                          />
+                            onChange={(e) => handleSelectCharity(charity.id, e.target.checked)} />
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 bg-blue-100 text-blue-700 rounded-md flex items-center justify-center font-bold text-xs">
-                              {charity.name.charAt(0)}
+                          <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 bg-indigo-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <Building2 className="h-5 w-5 text-indigo-600" />
                             </div>
-                            <span className="font-medium text-gray-900">{charity.name}</span>
+                            <div>
+                              <p className="font-semibold text-gray-900">{charity.name}</p>
+                              <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+                                <MapPin className="h-3 w-3" /> {charity.location}
+                              </p>
+                            </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-gray-600">{charity.focus}</td>
-                        <td className="px-6 py-4 text-gray-600 flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-gray-400" /> {charity.location}
+                        <td className="px-6 py-4 text-gray-600">
+                          {charity.focus}
                         </td>
-                        <td className="px-6 py-4">
-                          <Badge 
-                            variant="secondary" 
-                            className={
-                              charity.status === 'approved' ? 'bg-green-50 text-green-700 hover:bg-green-50' : 
-                              charity.status === 'archived' ? 'bg-gray-100 text-gray-700 hover:bg-gray-100' :
-                              'bg-yellow-50 text-yellow-700 hover:bg-yellow-50'
-                            }
-                          >
+                        <td className="px-6 py-4 text-center">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${charity.status === 'approved' ? 'bg-green-50 text-green-700' :
+                              charity.status === 'archived' ? 'bg-gray-100 text-gray-700' :
+                                'bg-yellow-50 text-yellow-700'
+                            }`}>
                             {charity.status ? charity.status.charAt(0).toUpperCase() + charity.status.slice(1) : 'Pending'}
-                          </Badge>
+                          </span>
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-blue-600" onClick={(e) => { e.stopPropagation(); openEditCharity(charity, e); }}>
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
+                        <td className="px-6 py-4 text-right space-x-2">
+                          <Button variant="outline" size="sm" onClick={() => { setEditingCharity(charity); setEditCharityOpen(true); }} className="text-gray-600">Edit</Button>
+                          {charity.status === 'pending_verification' && (
+                              <Button variant="default" size="sm" onClick={() => handleUpdateStatus(charity.id, 'approved')} className="bg-indigo-600">Approve</Button>
+                          )}
                         </td>
                       </tr>
                     ))}
-                    {charitiesList.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-8 text-center text-gray-500">No charities found.</td>
-                      </tr>
-                    )}
                   </tbody>
                 </table>
               </div>
-            </CardContent>
-          </Card>
+          </TabsContent>
+        </Tabs>
 
           <Dialog open={viewCharityOpen} onOpenChange={setViewCharityOpen}>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
               {selectedCharity && (
                 <>
                   <DialogHeader>
@@ -415,7 +403,7 @@ export function Charities() {
           </Dialog>
 
           <Dialog open={editCharityOpen} onOpenChange={setEditCharityOpen}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-xl p-6 sm:p-8">
               <DialogHeader>
                 <DialogTitle>Edit Charity Details</DialogTitle>
                 <DialogDescription>

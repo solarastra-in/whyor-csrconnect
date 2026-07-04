@@ -209,7 +209,7 @@ export function LandingPage() {
             </div>
 
             <Dialog open={showCompanyDialog} onOpenChange={setShowCompanyDialog}>
-              <DialogContent className="sm:max-w-[425px]">
+              <DialogContent className="sm:max-w-xl p-6 sm:p-8">
                 <DialogHeader>
                   <DialogTitle>Select Your Company</DialogTitle>
                   <DialogDescription>

@@ -16,6 +16,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -49,10 +50,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async () => {
-    await signInWithGoogle();
+    if (isSigningIn) return;
+    setIsSigningIn(true);
+    try {
+      await signInWithGoogle();
+    } finally {
+      setIsSigningIn(false);
+    }
   };
 
   const signInAsDemo = async () => {
+    if (isSigningIn) return;
+    setIsSigningIn(true);
     try {
       await firebaseSignInAsDemo();
     } catch (error: any) {
@@ -61,6 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         toast.error('Failed to sign in as demo.');
       }
+    } finally {
+      setIsSigningIn(false);
     }
   };
 

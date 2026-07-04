@@ -1,5 +1,6 @@
-import { db } from '@/src/lib/firebase';
+import { db, storage } from '@/src/lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Sparkles, Upload, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { auth } from '@/src/lib/firebase';
+import { getAuth } from 'firebase/auth';
+import { toast } from 'sonner';
 
 export function CharityOnboarding() {
   const navigate = useNavigate();
@@ -67,20 +70,30 @@ export function CharityOnboarding() {
       const auth = getAuth();
       const user = auth.currentUser;
       
+      let documentUrl = '';
+      if (file) {
+        const fileRef = ref(storage, `charity-documents/${Date.now()}_${file.name}`);
+        await uploadBytes(fileRef, file);
+        documentUrl = await getDownloadURL(fileRef);
+      }
+      
       await addDoc(collection(db, 'charities'), {
-        name: formData.orgName,
+        name: formData.orgName || formData.name,
         focus: formData.focusArea,
         location: formData.headquarters,
         website: formData.website,
         summary: formData.rawDescription,
         status: 'pending_verification',
         promotors: user ? user.email : '',
+        submittedBy: user ? user.uid : '',
+        documentUrl,
         createdAt: new Date().getTime(),
         activeProjects: []
       });
       
-      localStorage.removeItem('charityOnboardingDraft'); toast.success('Charity registration submitted for review!');
-      navigate('/admin/charities');
+      localStorage.removeItem('charityOnboardingDraft');
+      toast.success('Charity registration submitted for review!');
+      navigate('/');
     } catch (error) {
       console.error(error);
       toast.error('Failed to submit registration');

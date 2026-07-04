@@ -26,7 +26,7 @@ export function CompanySkillVerification() {
       const q = query(collection(db, 'skillVerifications'), where('companyDomain', '==', companyDomain));
       const snapshot = await getDocs(q);
       
-      let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      let data: any[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
       // Seed with some mock data if empty for demo purposes
       if (data.length === 0) {

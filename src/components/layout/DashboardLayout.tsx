@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router';
-import { LayoutDashboard, HeartHandshake, Building2, UserCircle, Settings, Home, LogOut } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, HeartHandshake, Building2, UserCircle, Settings, Home, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { NotificationDrawer } from './NotificationDrawer';
