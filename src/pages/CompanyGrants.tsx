@@ -8,6 +8,7 @@ import { FileText, CheckCircle, XCircle, Clock, Plus } from 'lucide-react';
 import { collection, addDoc, getDocs, updateDoc, doc, query, where, orderBy } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { getUserRoleInfo, UserRoleInfo } from '@/src/lib/userRole';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,20 +17,30 @@ export function CompanyGrants() {
   const { user } = useAuth();
   const [grants, setGrants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [roleInfo, setRoleInfo] = useState<UserRoleInfo | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [newGrant, setNewGrant] = useState({ project: '', ngo: '', amountRequested: 0, category: '' });
 
   useEffect(() => {
     if (user) {
-      fetchGrants();
+      getUserRoleInfo(user).then(info => {
+        setRoleInfo(info);
+        if (info.company?.id) {
+          fetchGrants(info.company.id);
+        } else {
+          setLoading(false);
+        }
+      });
     } else {
       setLoading(false);
     }
   }, [user]);
 
-  const fetchGrants = async () => {
+  const fetchGrants = async (companyId?: string) => {
+    const cid = companyId || roleInfo?.company?.id;
+    if (!cid) return;
     try {
-      const q = query(collection(db, 'grants'), orderBy('date', 'desc'));
+      const q = query(collection(db, 'grants'), where('companyId', '==', cid), orderBy('date', 'desc'));
       const snapshot = await getDocs(q);
       const fetchedGrants = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setGrants(fetchedGrants);
@@ -50,7 +61,7 @@ export function CompanyGrants() {
         ...newGrant,
         status: 'pending',
         date: new Date().toISOString(),
-        companyId: user?.uid || 'company'
+        companyId: roleInfo?.company?.id || ''
       });
       toast.success('Grant cycle created!');
       setIsCreating(false);
@@ -76,7 +87,41 @@ export function CompanyGrants() {
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Corporate Grantmaking</h1>
           <p className="text-gray-500 mt-1">Review grant applications from NGOs, allocate funds, and track outcomes.</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => toast.success('Grant cycle creation would open here')}>Create Grant Cycle</Button>
+        
+        <Dialog open={isCreating} onOpenChange={setIsCreating}>
+          <DialogTrigger asChild>
+            <Button className="bg-blue-600 hover:bg-blue-700">Create Grant Cycle</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Grant Cycle</DialogTitle>
+              <DialogDescription>Open a new grant application cycle for NGOs.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>NGO Name</Label>
+                <Input placeholder="e.g. Jal Foundation" value={newGrant.ngo} onChange={e => setNewGrant({...newGrant, ngo: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Project Name</Label>
+                <Input placeholder="e.g. Clean Ganga Initiative" value={newGrant.project} onChange={e => setNewGrant({...newGrant, project: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Input placeholder="e.g. Environment" value={newGrant.category} onChange={e => setNewGrant({...newGrant, category: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label>Amount Requested (₹)</Label>
+                <Input type="number" value={newGrant.amountRequested || ''} onChange={e => setNewGrant({...newGrant, amountRequested: Number(e.target.value)})} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCreating(false)}>Cancel</Button>
+              <Button onClick={handleCreateGrant} className="bg-blue-600">Create</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+  
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -92,7 +137,7 @@ export function CompanyGrants() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Funds Allocated</CardDescription>
-            <CardTitle className="text-2xl text-green-600">₹2,500,000</CardTitle>
+            <CardTitle className="text-2xl text-green-600">₹{grants.filter(g => g.status === 'approved').reduce((acc, curr) => acc + (Number(curr.amountRequested) || 0), 0).toLocaleString()}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-sm text-gray-500">25% of total budget</div>
@@ -101,7 +146,7 @@ export function CompanyGrants() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Pending Requests</CardDescription>
-            <CardTitle className="text-2xl text-amber-600">₹5,000,000</CardTitle>
+            <CardTitle className="text-2xl text-amber-600">₹{grants.filter(g => g.status === 'pending').reduce((acc, curr) => acc + (Number(curr.amountRequested) || 0), 0).toLocaleString()}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-sm text-gray-500">1 application pending review</div>

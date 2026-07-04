@@ -14,6 +14,10 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
     
+    function isCompanyMember(companyId) {
+      return isRealUser() && request.auth.token.companyId == companyId;
+    }
+    
     function isPlatformAdmin() {
       return isSignedIn() && request.auth.token.email == 'solarastra.in@gmail.com';
     }
@@ -63,19 +67,20 @@ service cloud.firestore {
     match /ergs/{ergId} {
       allow read: if isSignedIn();
       allow create: if isRealUser();
-      allow update, delete: if isRealUser() || isPlatformAdmin();
+      allow update, delete: if isPlatformAdmin() || isCompanyMember(resource.data.companyId);
     }
     match /companies/{companyId}/campaigns/{campaignId} {
       allow read: if isSignedIn();
-      allow write: if isPlatformAdmin() || isRealUser(); 
+      allow write: if isPlatformAdmin() || isCompanyMember(companyId);
     }
     match /companies/{companyId}/config/{configId} {
       allow read: if isSignedIn();
-      allow write: if isPlatformAdmin() || isRealUser(); 
+      allow write: if isPlatformAdmin() || isCompanyMember(companyId);
     }
     match /skillVerifications/{id} {
       allow read: if isSignedIn();
-      allow write: if isPlatformAdmin() || isRealUser();
+      allow create: if isRealUser() && request.resource.data.userId == request.auth.uid;
+      allow update: if isPlatformAdmin() || (isRealUser() && resource.data.companyId == request.auth.token.companyId);
     }
     match /companies/{companyId} {
       allow read: if true;
@@ -100,7 +105,8 @@ service cloud.firestore {
     }
     match /grants/{grantId} {
       allow read: if isSignedIn();
-      allow write: if isRealUser() || isPlatformAdmin();
+      allow create: if isCompanyMember(request.resource.data.companyId);
+      allow update, delete: if isPlatformAdmin() || isCompanyMember(resource.data.companyId);
     }
   }
 }

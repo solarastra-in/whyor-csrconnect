@@ -287,8 +287,9 @@ export function Charities() {
             <TabsTrigger value="pending_verification">Pending Approval</TabsTrigger>
             <TabsTrigger value="approved">Approved</TabsTrigger>
           </TabsList>
-          <TabsContent value="all">
-            <div className="overflow-x-auto">
+                    {['all', 'pending_verification', 'approved'].map(tabValue => (
+            <TabsContent key={tabValue} value={tabValue}>
+                          <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
                   <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b">
                     <tr>
@@ -302,7 +303,7 @@ export function Charities() {
                     </tr>
                   </thead>
                   <tbody>
-                    {charitiesList.map((charity) => (
+                    {charitiesList.filter(c => tabValue === 'all' || (c.status || 'pending_verification') === tabValue).map((charity) => (
                       <tr key={charity.id} className="border-b hover:bg-gray-50/50">
                         <td className="px-6 py-4">
                           <input type="checkbox" className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
@@ -315,27 +316,31 @@ export function Charities() {
                               <Building2 className="h-5 w-5 text-indigo-600" />
                             </div>
                             <div>
-                              <p className="font-semibold text-gray-900">{charity.name}</p>
-                              <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
-                                <MapPin className="h-3 w-3" /> {charity.location}
-                              </p>
+                              <p className="font-medium text-gray-900">{charity.name}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <MapPin className="h-3 w-3 text-gray-400" />
+                                <span className="text-xs text-gray-500">{charity.location}</span>
+                              </div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-gray-600">
-                          {charity.focus}
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                            {charity.focus}
+                          </span>
                         </td>
-                        <td className="px-6 py-4 text-center">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${charity.status === 'approved' ? 'bg-green-50 text-green-700' :
-                              charity.status === 'archived' ? 'bg-gray-100 text-gray-700' :
-                                'bg-yellow-50 text-yellow-700'
-                            }`}>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            charity.status === 'approved' ? 'bg-green-50 text-green-700' :
+                            charity.status === 'rejected' ? 'bg-red-50 text-red-700' :
+                            'bg-yellow-50 text-yellow-700'
+                          }`}>
                             {charity.status ? charity.status.charAt(0).toUpperCase() + charity.status.slice(1) : 'Pending'}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right space-x-2">
                           <Button variant="outline" size="sm" onClick={() => { setEditingCharity(charity); setEditCharityOpen(true); }} className="text-gray-600">Edit</Button>
-                          {charity.status === 'pending_verification' && (
+                          {(charity.status === 'pending_verification' || !charity.status) && (
                               <Button variant="default" size="sm" onClick={() => handleUpdateStatus(charity.id, 'approved')} className="bg-indigo-600">Approve</Button>
                           )}
                         </td>
@@ -344,9 +349,9 @@ export function Charities() {
                   </tbody>
                 </table>
               </div>
-          </TabsContent>
+            </TabsContent>
+          ))}
         </Tabs>
-
           <Dialog open={viewCharityOpen} onOpenChange={setViewCharityOpen}>
             <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
               {selectedCharity && (
