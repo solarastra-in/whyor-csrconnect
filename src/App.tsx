@@ -18,6 +18,7 @@ import { CharityOnboarding } from './pages/CharityOnboarding';
 import { Companies } from './pages/Companies';
 import { PlatformSettings } from './pages/PlatformSettings';
 import { PlatformSupport } from './pages/PlatformSupport';
+import { ComplianceAuditLog } from './pages/ComplianceAuditLog';
 
 import { EmployeeDashboard } from './pages/EmployeeDashboard';
 import { DiscoverProjects } from './pages/DiscoverProjects';
@@ -43,6 +44,7 @@ import { CompanyGivingBudgets } from './pages/CompanyGivingBudgets';
 import { CompanyCommitments } from './pages/CompanyCommitments';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ProjectReminders } from './components/ProjectReminders';
+import { PaymentNotifications } from './components/PaymentNotifications';
 
 
 export default function App() {
@@ -51,6 +53,7 @@ export default function App() {
       <VolunteerProvider>
         <Toaster position="top-center" richColors expand={true} />
         <ProjectReminders />
+        <PaymentNotifications />
         <BrowserRouter>
           <Routes>
         {/* Landing/Role Selection */}
@@ -67,6 +70,7 @@ export default function App() {
           <Route path="support" element={<PlatformSupport />} />
           <Route path="settings" element={<PlatformSettings />} />
           <Route path="payments" element={<PaymentAudit />} />
+          <Route path="compliance" element={<ComplianceAuditLog />} />
         </Route>
 
         
@@ -107,6 +111,7 @@ export default function App() {
           <Route path="employees" element={<CompanyEmployees />} />
           <Route path="settings" element={<CompanySettings />} />
           <Route path="payments" element={<PaymentAudit />} />
+          <Route path="compliance" element={<ComplianceAuditLog />} />
         </Route>
       </Routes>
         </BrowserRouter>

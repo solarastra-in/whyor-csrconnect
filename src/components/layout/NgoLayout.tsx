@@ -1,15 +1,17 @@
 import { Outlet, Link, useLocation } from 'react-router';
-import { LayoutDashboard, Users, Home, UserCircle, LogOut, FileText, Settings, HeartHandshake } from 'lucide-react';
+import { LayoutDashboard, Users, Home, UserCircle, LogOut, FileText, Settings, HeartHandshake, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { NotificationDrawer } from './NotificationDrawer';
 import { useEffect, useState } from 'react';
 import { getUserRoleInfo, UserRoleInfo } from '@/src/lib/userRole';
+import { useTheme } from '@/src/lib/useTheme';
 
 export function NgoLayout() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const [roleInfo, setRoleInfo] = useState<UserRoleInfo | null>(null);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     if (user) {
@@ -26,7 +28,7 @@ export function NgoLayout() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex transition-colors duration-200">
       <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col text-slate-300">
         <div className="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950">
           <HeartHandshake className="h-5 w-5 text-green-400 mr-2" />
@@ -86,8 +88,15 @@ export function NgoLayout() {
           </div>
         </div>
       </aside>
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50">
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-end px-6 shadow-sm z-10">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50 dark:bg-slate-950">
+        <header className="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-end px-6 shadow-sm z-10 gap-4">
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 dark:text-gray-400 transition-colors"
+            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+          >
+            {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+          </button>
           <NotificationDrawer />
         </header>
         <div className="flex-1 overflow-y-auto p-8">

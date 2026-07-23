@@ -18,7 +18,7 @@ import { useAuth } from '@/src/contexts/AuthContext';
 const mockEmployees: any[] = [];
 
 export function CompanyGivingBudgets() {
-  const { user } = useAuth();
+  const { user, roleInfo } = useAuth();
   const [globalAmount, setGlobalAmount] = useState('50000');
   const [frequency, setFrequency] = useState('annually');
   const [budgetType, setBudgetType] = useState('stipend');
@@ -36,10 +36,10 @@ export function CompanyGivingBudgets() {
   const fetchBudgetConfig = async () => {
     try {
       setLoading(true);
-      const companyDomain = user?.email?.split('@')[1];
-      if (!companyDomain) return;
+      const companyId = roleInfo?.company?.id;
+      if (!companyId) return;
       
-      const docRef = doc(db, 'companies', companyDomain, 'config', 'budgets');
+      const docRef = doc(db, 'companies', companyId, 'config', 'budgets');
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
@@ -58,13 +58,13 @@ export function CompanyGivingBudgets() {
   const saveBudgetConfig = async () => {
     try {
       setSaving(true);
-      const companyDomain = user?.email?.split('@')[1];
-      if (!companyDomain) {
+      const companyId = user?.email?.split('@')[1];
+      if (!companyId) {
         toast.error("Could not determine company");
         return;
       }
       
-      const docRef = doc(db, 'companies', companyDomain, 'config', 'budgets');
+      const docRef = doc(db, 'companies', companyId, 'config', 'budgets');
       await setDoc(docRef, {
         amount: globalAmount,
         frequency,
