@@ -11,6 +11,7 @@ import { useVolunteer } from '@/src/contexts/VolunteerContext';
 import { collection, getDocs, doc, setDoc, addDoc, query, where, orderBy } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { PersonalCSRGoal } from '@/src/components/PersonalCSRGoal';
+import { EmployeeGamificationBadges } from '@/src/components/EmployeeGamificationBadges';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -139,40 +140,7 @@ This is a computer-generated receipt.
 
       <PersonalCSRGoal currentHours={totalHours} currentDonations={10000} />
       
-      <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">My Badges</h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card className="text-center p-4 bg-yellow-50 border-yellow-200">
-            <Medal className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
-            <h4 className="font-semibold text-sm text-yellow-900">Philanthropist</h4>
-            <p className="text-xs text-yellow-700 mt-1">Donated ₹10k+</p>
-          </Card>
-          
-          <Card className="text-center p-4 bg-purple-50 border-purple-200">
-            <Award className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-            <h4 className="font-semibold text-sm text-purple-900">Multiplier</h4>
-            <p className="text-xs text-purple-700 mt-1">Maxed out Match</p>
-          </Card>
-          
-          <Card className="text-center p-4 bg-green-50 border-green-200">
-            <Star className="h-8 w-8 text-green-600 mx-auto mb-2" />
-            <h4 className="font-semibold text-sm text-green-900">10h Volunteer</h4>
-            <p className="text-xs text-green-700 mt-1">Milestone reached</p>
-          </Card>
-          
-          <Card className="text-center p-4 bg-orange-50 border-orange-200">
-            <Trophy className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-            <h4 className="font-semibold text-sm text-orange-900">Rising Star</h4>
-            <p className="text-xs text-orange-700 mt-1">First activity</p>
-          </Card>
-          
-          <Card className="text-center p-4 bg-blue-50 border-blue-200 opacity-50 grayscale">
-            <Target className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-            <h4 className="font-semibold text-sm text-blue-900">Century Maker</h4>
-            <p className="text-xs text-blue-700 mt-1">100h Vol (Locked)</p>
-          </Card>
-        </div>
-      </div>
+      <EmployeeGamificationBadges />
 
       <div className="space-y-4">
         <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
