@@ -127,20 +127,25 @@ service cloud.firestore {
 
     match /projects/{projectId} {
       allow read: if true;
-      allow write: if isPlatformAdmin() || isPlatformStaff() || (isSignedIn() && request.auth.token.email in get(/databases/$(database)/documents/charities/$(request.resource.data.charityId)).data.adminEmails);
+      allow create: if isPlatformAdmin() || isPlatformStaff() || (isSignedIn() && exists(/databases/$(database)/documents/charities/$(request.resource.data.charityId)) && request.auth.token.email in get(/databases/$(database)/documents/charities/$(request.resource.data.charityId)).data.adminEmails);
+      allow update, delete: if isPlatformAdmin() || isPlatformStaff() || (isSignedIn() && exists(/databases/$(database)/documents/charities/$(resource.data.charityId)) && request.auth.token.email in get(/databases/$(database)/documents/charities/$(resource.data.charityId)).data.adminEmails);
     }
     
     match /commitments/{commitmentId} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
     match /payments/{paymentId} {
-      allow read: if isSignedIn();
-      allow write: if isPlatformAdmin() || isCompanyMember(request.resource.data.companyId);
+      allow read: if isPlatformStaff() || (isSignedIn() && (resource.data.companyId == request.auth.token.companyId || resource.data.ngoId == request.auth.uid || resource.data.charityId == request.auth.uid));
+      allow create: if isCompanyMember(request.resource.data.companyId) || isPlatformAdmin();
+      allow update: if isPlatformAdmin() || isPlatformStaff();
     }
+
     match /grants/{grantId} {
       allow read: if isSignedIn();
-      allow create: if isCompanyMember(request.resource.data.companyId);
+      allow create: if isCompanyMember(request.resource.data.companyId) || (isSignedIn() && exists(/databases/$(database)/documents/charities/$(request.resource.data.ngoId)) && request.auth.token.email in get(/databases/$(database)/documents/charities/$(request.resource.data.ngoId)).data.adminEmails);
       allow update, delete: if isPlatformAdmin() || isCompanyMember(resource.data.companyId);
     }
   }

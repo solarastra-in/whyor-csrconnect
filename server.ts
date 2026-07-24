@@ -70,7 +70,19 @@ async function startServer() {
           }
         }
         
-        // 2. Check if employee (if not admin)
+        // 2. Check if NGO admin
+        if (role === 'none') {
+          const charitiesSnapshot = await db.collection('charities').get();
+          for (const doc of charitiesSnapshot.docs) {
+            const data = doc.data();
+            if (data.adminEmails && data.adminEmails.includes(email)) {
+              role = 'ngo_admin';
+              break;
+            }
+          }
+        }
+
+        // 3. Check if employee (if not company admin or ngo admin)
         if (role === 'none') {
           for (const doc of companiesSnapshot.docs) {
             const data = doc.data();

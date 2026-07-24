@@ -10,6 +10,8 @@ import { NgoLayout } from './components/layout/NgoLayout';
 import { NgoDashboard } from './pages/NgoDashboard';
 import { NgoTeam } from './pages/NgoTeam';
 import { NgoSettings } from './pages/NgoSettings';
+import { NgoProjects } from './pages/NgoProjects';
+import { NgoGrants } from './pages/NgoGrants';
 import { LandingPage } from './pages/LandingPage';
 import { CompanyPortalLogin } from './pages/CompanyPortalLogin';
 import { Dashboard } from './pages/Dashboard';
@@ -77,9 +79,10 @@ export default function App() {
         {/* NGO Portal */}
         <Route path="/ngo" element={<ProtectedRoute allowedRoles={['ngo_admin', 'ngo_employee']}><NgoLayout /></ProtectedRoute>}>
           <Route index element={<NgoDashboard />} />
+          <Route path="projects" element={<NgoProjects />} />
+          <Route path="grants" element={<NgoGrants />} />
           <Route path="team" element={<NgoTeam />} />
           <Route path="settings" element={<NgoSettings />} />
-          {/* We reuse some components if needed, or add placeholders for projects/grants */}
         </Route>
         {/* Employee Portal */}
         <Route path="/employee" element={<ProtectedRoute allowedRoles={['employee', 'company_admin', 'platform_admin']}><EmployeeLayout /></ProtectedRoute>}>
