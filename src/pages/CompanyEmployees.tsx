@@ -30,16 +30,10 @@ export function CompanyEmployees() {
   }, [user]);
 
   const fetchEmployees = async (cid: string, domains: string[]) => {
-    // We would ideally query a users collection, but since we don't have all users linked directly
-    // in this prototype we will simulate fetching users who belong to the company domains.
-    // Let's just fetch from 'users' collection where their email matches the domains or invited list.
     try {
-      const usersSnap = await getDocs(collection(db, 'users'));
-      const companyUsers = usersSnap.docs.map(d => ({id: d.id, ...d.data()})).filter((u: any) => {
-        if (!u.email) return false;
-        const domain = u.email.split('@')[1];
-        return domains.includes(domain) || invitedEmails.includes(u.email.toLowerCase());
-      });
+      const q = query(collection(db, 'users'), where('companyId', '==', cid));
+      const usersSnap = await getDocs(q);
+      const companyUsers = usersSnap.docs.map(d => ({id: d.id, ...d.data()}));
       setEmployees(companyUsers);
     } catch (e) {
       console.error(e);

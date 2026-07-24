@@ -116,7 +116,6 @@ export default function App() {
           <Route path="employees" element={<CompanyEmployees />} />
           <Route path="settings" element={<CompanySettings />} />
           <Route path="payments" element={<PaymentAudit />} />
-          <Route path="compliance" element={<ComplianceAuditLog />} />
         </Route>
       </Routes>
         </BrowserRouter>

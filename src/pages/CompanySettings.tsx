@@ -12,7 +12,7 @@ import { getAuth } from 'firebase/auth';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { getUserRoleInfo, Company } from '@/src/lib/userRole';
 import { db } from '@/src/lib/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, addDoc, collection } from 'firebase/firestore';
 
 
 export function CompanySettings() {
@@ -30,9 +30,16 @@ export function CompanySettings() {
   const [about, setAbout] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [brandColor, setBrandColor] = useState('#2563eb');
+  const [portalName, setPortalName] = useState('');
+  
+  // SAML states
+  const [samlSsoUrl, setSamlSsoUrl] = useState('');
+  const [samlIssuer, setSamlIssuer] = useState('');
+  const [samlCert, setSamlCert] = useState('');
   
   const [smtpSettings, setSmtpSettings] = useState({ host: '', port: 587, user: '', pass: '', secure: false });
   const [enableEmployeeSurveys, setEnableEmployeeSurveys] = useState(false);
+  const [targetHours, setTargetHours] = useState<number>(10000);
 
   useEffect(() => {
     async function loadCompany() {
@@ -43,6 +50,18 @@ export function CompanySettings() {
           setCompanyName(info.company.name || "");
           setWebsite((info.company as any).website || "");
           setAbout((info.company as any).about || "");
+          if (info.company.targetHours) {
+            setTargetHours(Number(info.company.targetHours));
+          }
+          if ((info.company as any).samlConfig) {
+            setSamlSsoUrl((info.company as any).samlConfig.ssoUrl || '');
+            setSamlIssuer((info.company as any).samlConfig.issuer || '');
+            setSamlCert((info.company as any).samlConfig.cert || '');
+          }
+          if ((info.company as any).branding) {
+            setBrandColor((info.company as any).branding.brandColor || '#2563eb');
+            setPortalName((info.company as any).branding.portalName || '');
+          }
           if (info.company.smtpSettings) {
             setSmtpSettings(info.company.smtpSettings);
           }
@@ -82,7 +101,8 @@ export function CompanySettings() {
     if (!company) return;
     try {
       await updateDoc(doc(db, 'companies', company.id), {
-        enableEmployeeSurveys
+        enableEmployeeSurveys,
+        targetHours: Number(targetHours) || 10000
       });
       toast.success('Preferences saved successfully');
     } catch (error) {
@@ -94,7 +114,26 @@ export function CompanySettings() {
   const handleSaveSAML = async () => {
     if (!company) return;
     try {
-      // Dummy SAML saving logic as per the mock data
+      await updateDoc(doc(db, 'companies', company.id), {
+        samlConfig: {
+          ssoUrl: samlSsoUrl,
+          issuer: samlIssuer,
+          cert: samlCert,
+          enabled: true,
+          updatedAt: new Date().toISOString()
+        }
+      });
+      await addDoc(collection(db, 'platform/auditLog/events'), {
+        action: 'UPDATE_COMPANY_SAML_SSO',
+        actor: user?.email || 'Company Admin',
+        performedBy: user?.email || 'Company Admin',
+        entity: `Company: ${company.name || company.id}`,
+        companyId: company.id,
+        type: 'security',
+        status: 'success',
+        ipAddress: '127.0.0.1',
+        timestamp: new Date()
+      });
       toast.success('SAML configuration saved successfully');
     } catch (error) {
       console.error(error);
@@ -105,7 +144,24 @@ export function CompanySettings() {
   const handleSaveBranding = async () => {
     if (!company) return;
     try {
-      // Mock logic for branding save
+      await updateDoc(doc(db, 'companies', company.id), {
+        branding: {
+          brandColor,
+          portalName,
+          updatedAt: new Date().toISOString()
+        }
+      });
+      await addDoc(collection(db, 'platform/auditLog/events'), {
+        action: 'UPDATE_COMPANY_BRANDING',
+        actor: user?.email || 'Company Admin',
+        performedBy: user?.email || 'Company Admin',
+        entity: `Company: ${company.name || company.id}`,
+        companyId: company.id,
+        type: 'config',
+        status: 'success',
+        ipAddress: '127.0.0.1',
+        timestamp: new Date()
+      });
       toast.success('Branding saved successfully');
     } catch (error) {
       console.error(error);
@@ -323,7 +379,7 @@ export function CompanySettings() {
 
                 <div className="space-y-2">
                   <Label htmlFor="portalName">Custom Portal Name</Label>
-                  <Input id="portalName" defaultValue="TechCorp Giving" />
+                  <Input id="portalName" value={portalName} onChange={(e) => setPortalName(e.target.value)} placeholder="e.g. Corporate Giving Hub" />
                   <p className="text-xs text-gray-500">This name will be displayed in the header of the employee portal.</p>
                 </div>
               </div>
@@ -391,6 +447,22 @@ export function CompanySettings() {
                   checked={enableEmployeeSurveys} 
                   onCheckedChange={setEnableEmployeeSurveys}
                 />
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-gray-100">
+                <Label htmlFor="target-hours" className="flex flex-col space-y-1">
+                  <span className="font-medium text-gray-900">Annual Volunteer Hour Target</span>
+                  <span className="font-normal text-sm text-gray-500">Set the company's annual volunteer goal used for corporate progress tracking and milestone alerts.</span>
+                </Label>
+                <div className="flex items-center gap-2 max-w-xs pt-1">
+                  <Input 
+                    id="target-hours" 
+                    type="number" 
+                    value={targetHours} 
+                    onChange={(e) => setTargetHours(parseInt(e.target.value) || 0)} 
+                  />
+                  <span className="text-sm font-medium text-gray-600">Hours</span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -503,15 +575,17 @@ export function CompanySettings() {
                           <div className="space-y-3">
                             <div className="space-y-1">
                               <Label>IdP Single Sign-On URL</Label>
-                              <Input placeholder="https://your-idp.com/sso/saml" />
+                              <Input value={samlSsoUrl} onChange={e => setSamlSsoUrl(e.target.value)} placeholder="https://your-idp.com/sso/saml" />
                             </div>
                             <div className="space-y-1">
                               <Label>IdP Issuer (Entity ID)</Label>
-                              <Input placeholder="https://your-idp.com/issuer" />
+                              <Input value={samlIssuer} onChange={e => setSamlIssuer(e.target.value)} placeholder="https://your-idp.com/issuer" />
                             </div>
                             <div className="space-y-1">
                               <Label>X.509 Certificate</Label>
                               <textarea 
+                                value={samlCert}
+                                onChange={e => setSamlCert(e.target.value)}
                                 className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                 placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----"
                               />

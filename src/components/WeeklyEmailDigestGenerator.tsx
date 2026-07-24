@@ -96,8 +96,8 @@ export function WeeklyEmailDigestGenerator() {
       });
       setIsSending(false);
       setIsOpen(false);
-      toast.success(`Weekly Executive Digest dispatched to ${recipientGroup}!`, {
-        description: 'Report saved to audit logs and delivered to leadership.'
+      toast.success(`Digest saved and queued for delivery!`, {
+        description: `Report recorded in digest audit logs for ${recipientGroup}. Note: outbound email dispatch currently requires external SMTP integration.`
       });
     } catch (e) {
       setIsSending(false);
@@ -231,6 +231,11 @@ ${digestData.newVolunteersList.map(v => `- ${v.name} (${v.role} - ${v.dept})`).j
                   placeholder="Custom note to company leadership..."
                 />
               </div>
+
+              <div className="p-2.5 rounded-lg bg-amber-50/70 border border-amber-200/80 text-[11px] text-amber-900 flex items-center gap-2">
+                <Mail className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span>Note: Outbound email delivery currently requires an external SMTP integration configured in Company Settings.</span>
+              </div>
             </div>
 
             {/* Email Digest Live Preview Container */}
@@ -326,36 +331,43 @@ ${digestData.newVolunteersList.map(v => `- ${v.name} (${v.role} - ${v.dept})`).j
             </div>
           </div>
 
-          <DialogFooter className="p-4 bg-white border-t border-slate-200 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCopyMarkdown}
-              className="text-xs gap-1.5 w-full sm:w-auto"
-            >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-              {copied ? 'Copied Content!' : 'Copy Email Markdown'}
-            </Button>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <DialogFooter className="p-4 bg-white border-t border-slate-200 shrink-0 flex flex-col gap-2">
+            <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-2">
               <Button
                 type="button"
-                variant="ghost"
-                onClick={() => setIsOpen(false)}
-                className="text-xs"
+                variant="outline"
+                onClick={handleCopyMarkdown}
+                className="text-xs gap-1.5 w-full sm:w-auto"
               >
-                Close
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? 'Copied Content!' : 'Copy Email Markdown'}
               </Button>
 
-              <Button
-                type="button"
-                onClick={handleSendDigestNow}
-                disabled={isSending}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs gap-1.5 w-full sm:w-auto"
-              >
-                {isSending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                {isSending ? 'Sending Digest...' : 'Dispatch Email Digest Now'}
-              </Button>
+              <div className="flex flex-col items-stretch sm:items-end gap-1 w-full sm:w-auto">
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setIsOpen(false)}
+                    className="text-xs"
+                  >
+                    Close
+                  </Button>
+
+                  <Button
+                    type="button"
+                    onClick={handleSendDigestNow}
+                    disabled={isSending}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs gap-1.5 w-full sm:w-auto"
+                  >
+                    {isSending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                    {isSending ? 'Sending Digest...' : 'Dispatch Email Digest Now'}
+                  </Button>
+                </div>
+                <p className="text-[10px] text-slate-500 font-medium text-right sm:text-right text-center">
+                  * Note: Actual email delivery requires external SMTP integration configured in settings.
+                </p>
+              </div>
             </div>
           </DialogFooter>
         </DialogContent>

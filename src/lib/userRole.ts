@@ -25,6 +25,7 @@ export interface Company {
   employeeStrength?: number;
   enableEmployeeSurveys?: boolean;
   smtpSettings?: SmtpSettings;
+  targetHours?: number;
 }
 
 export interface Charity {

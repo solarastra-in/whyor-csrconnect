@@ -146,18 +146,18 @@ Tags: ${resource.tags.join(', ')}
 
 ================================================================
 `;
-    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([textContent], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${resource.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_guide.txt`;
+    a.download = `${resource.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_guide.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
     toast.success(`Downloaded ${resource.title}`, {
-      description: `Saved official document guide as text file.`
+      description: `Saved official document guide as Markdown.`
     });
   };
 

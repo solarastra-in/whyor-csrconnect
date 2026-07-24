@@ -16,8 +16,10 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
+import { useAuth } from '@/src/contexts/AuthContext';
+import { getUserRoleInfo } from '@/src/lib/userRole';
 
 import { CSREventsCalendar } from '@/src/components/CSREventsCalendar';
 import { CompanyRecentActivityFeed } from '@/src/components/CompanyRecentActivityFeed';
@@ -25,6 +27,10 @@ import { DepartmentLeaderboard } from '@/src/components/DepartmentLeaderboard';
 import { WeeklyEmailDigestGenerator } from '@/src/components/WeeklyEmailDigestGenerator';
 
 export function CompanyDashboard() {
+  const { user } = useAuth();
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [isSavingTarget, setIsSavingTarget] = useState<boolean>(false);
+
   const [widgets, setWidgets] = useState({
     participation: true,
     fundsMatched: true,
@@ -32,7 +38,7 @@ export function CompanyDashboard() {
     activeCampaigns: true,
   });
 
-  // Annual Volunteer Target State
+  // Annual Volunteer Target State (defaults to 1000 until loaded from Firestore)
   const [targetHours, setTargetHours] = useState<number>(10000);
   const [completedHours, setCompletedHours] = useState<number>(0);
   const [participationRate, setParticipationRate] = useState<number>(0);
@@ -54,6 +60,36 @@ export function CompanyDashboard() {
   useEffect(() => {
     const fetchCompanyDashboardMetrics = async () => {
       try {
+        // 0. Fetch company settings for personalized targetHours
+        let activeCompanyId: string | null = null;
+        if (user) {
+          const roleInfo = await getUserRoleInfo(user);
+          if (roleInfo.company) {
+            activeCompanyId = roleInfo.company.id;
+            setCompanyId(roleInfo.company.id);
+            if (roleInfo.company.targetHours && Number(roleInfo.company.targetHours) > 0) {
+              setTargetHours(Number(roleInfo.company.targetHours));
+            }
+          }
+        }
+
+        if (activeCompanyId) {
+          const compSnap = await getDoc(doc(db, 'companies', activeCompanyId));
+          if (compSnap.exists() && compSnap.data()?.targetHours) {
+            setTargetHours(Number(compSnap.data().targetHours));
+          }
+        } else {
+          // Fallback if no logged-in corporate profile
+          const companiesSnap = await getDocs(collection(db, 'companies'));
+          if (!companiesSnap.empty) {
+            const firstCompDoc = companiesSnap.docs[0];
+            setCompanyId(firstCompDoc.id);
+            if (firstCompDoc.data()?.targetHours) {
+              setTargetHours(Number(firstCompDoc.data().targetHours));
+            }
+          }
+        }
+
         // 1. Commitments (Volunteer Hours & Pledges)
         const commitmentsSnap = await getDocs(collection(db, 'commitments'));
         const totalHrs = commitmentsSnap.docs.reduce((sum, doc) => sum + (Number(doc.data().hoursPledged) || 0), 0);
@@ -114,7 +150,38 @@ export function CompanyDashboard() {
     };
 
     fetchCompanyDashboardMetrics();
-  }, []);
+  }, [user]);
+
+  const handleSaveTargetHours = async (newVal: number) => {
+    const val = Math.max(10, newVal);
+    setTargetHours(val);
+    let targetCompanyId = companyId;
+
+    if (!targetCompanyId) {
+      const companiesSnap = await getDocs(collection(db, 'companies'));
+      if (!companiesSnap.empty) {
+        targetCompanyId = companiesSnap.docs[0].id;
+        setCompanyId(targetCompanyId);
+      }
+    }
+
+    if (targetCompanyId) {
+      setIsSavingTarget(true);
+      try {
+        await updateDoc(doc(db, 'companies', targetCompanyId), {
+          targetHours: val
+        });
+        toast.success('Company target updated', {
+          description: `Volunteer hour goal set to ${val.toLocaleString()} hrs in company settings.`
+        });
+      } catch (e) {
+        console.error('Error saving target hours:', e);
+        toast.error('Failed to save target hours to company settings');
+      } finally {
+        setIsSavingTarget(false);
+      }
+    }
+  };
 
   // Milestone Toast Trigger logic on target progress changes (50%, 75%, 100%)
   useEffect(() => {
@@ -343,20 +410,28 @@ export function CompanyDashboard() {
                     <Settings className="w-3.5 h-3.5 text-slate-500" /> Adjust Target
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-72 p-4">
+                <PopoverContent className="w-80 p-4">
                   <h4 className="font-semibold text-sm mb-2 text-slate-900">Set Annual Goal (Hours)</h4>
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <Input 
                         type="number" 
                         value={targetHours} 
-                        onChange={(e) => setTargetHours(Math.max(100, parseInt(e.target.value) || 1000))} 
+                        onChange={(e) => setTargetHours(parseInt(e.target.value) || 0)} 
                         className="h-8 text-sm"
                       />
                       <span className="text-xs text-slate-500">hrs</span>
+                      <Button
+                        size="sm"
+                        disabled={isSavingTarget}
+                        onClick={() => handleSaveTargetHours(targetHours)}
+                        className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white shrink-0"
+                      >
+                        {isSavingTarget ? 'Saving...' : 'Save'}
+                      </Button>
                     </div>
                     <p className="text-xs text-slate-500">
-                      Modifying target recalculates 50% ({Math.round(targetHours * 0.5)}h), 75% ({Math.round(targetHours * 0.75)}h), and 100% ({targetHours}h) alert thresholds.
+                      Target is saved to company settings and recalculates 50% ({Math.round(targetHours * 0.5).toLocaleString()}h), 75% ({Math.round(targetHours * 0.75).toLocaleString()}h), and 100% ({targetHours.toLocaleString()}h) alert thresholds.
                     </p>
                   </div>
                 </PopoverContent>

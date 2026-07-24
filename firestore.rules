@@ -48,6 +48,12 @@ service cloud.firestore {
     }
   
 
+    match /platform/auditLog/{document=**} {
+      allow create: if isSignedIn();
+      allow read: if isPlatformStaff() || isPlatformAdmin() || (isSignedIn() && (request.auth.token.role == 'company_admin' || request.auth.token.role == 'ngo_admin' || request.auth.token.companyId != null));
+      allow update, delete: if isPlatformStaff() || isPlatformAdmin();
+    }
+
     match /platform/{document=**} {
       allow read, write: if isPlatformStaff() || isPlatformAdmin();
     }

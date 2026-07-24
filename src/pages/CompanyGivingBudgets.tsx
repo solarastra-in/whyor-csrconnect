@@ -15,16 +15,22 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { useAuth } from '@/src/contexts/AuthContext';
 
-const mockEmployees: any[] = [];
-
 export function CompanyGivingBudgets() {
   const { user, roleInfo } = useAuth();
   const [globalAmount, setGlobalAmount] = useState('50000');
   const [frequency, setFrequency] = useState('annually');
-  const [budgetType, setBudgetType] = useState('stipend');
+  const [budgetType, setBudgetType] = useState('matching');
+  const [matchRatio, setMatchRatio] = useState('1:1');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [realMetrics, setRealMetrics] = useState({
+    totalAllocated: 500000,
+    totalUtilized: 0,
+    donorCount: 0,
+    avgPerUser: 0
+  });
 
   useEffect(() => {
     if (user?.email) {
@@ -32,22 +38,69 @@ export function CompanyGivingBudgets() {
     }
   }, [user]);
 
-  // Using email as a domain proxy for demo purposes, normally company ID
   const fetchBudgetConfig = async () => {
     try {
       setLoading(true);
-      const companyId = roleInfo?.company?.id;
+      const companyId = roleInfo?.company?.id || user?.email?.split('@')[1];
       if (!companyId) return;
       
       const docRef = doc(db, 'companies', companyId, 'config', 'budgets');
       const docSnap = await getDoc(docRef);
       
+      let currentGlobal = '50000';
       if (docSnap.exists()) {
         const data = docSnap.data();
-        setGlobalAmount(data.amount || '50000');
+        currentGlobal = data.amount || '50000';
+        setGlobalAmount(currentGlobal);
         setFrequency(data.frequency || 'annually');
-        setBudgetType(data.type || 'stipend');
+        setBudgetType(data.type || 'matching');
+        setMatchRatio(data.matchRatio || '1:1');
       }
+
+      // Fetch real company payments
+      const { collection, getDocs, query, where } = await import('firebase/firestore');
+      const paymentsSnap = await getDocs(collection(db, 'payments'));
+      const companyPayments = paymentsSnap.docs
+        .map(d => d.data())
+        .filter((p: any) => p.companyId === companyId || !companyId);
+
+      // Fetch real employees for this company
+      let usersQuery = query(collection(db, 'users'), where('companyId', '==', companyId));
+      let usersSnap = await getDocs(usersQuery);
+      let usersList = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      if (usersList.length === 0) {
+        // Fallback: fetch all users or use current user as representative employee
+        const allUsersSnap = await getDocs(collection(db, 'users'));
+        usersList = allUsersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      }
+
+      const allocatedPerEmp = Number(currentGlobal) || 50000;
+      const formattedEmps = usersList.map((emp: any) => {
+        const userPayments = companyPayments.filter((p: any) => p.userId === emp.id || p.email === emp.email);
+        const userUtilized = userPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+        return {
+          id: emp.id || emp.email,
+          name: emp.name || emp.displayName || emp.email?.split('@')[0] || 'Employee User',
+          email: emp.email || 'employee@company.com',
+          type: 'Global Default',
+          allocated: allocatedPerEmp,
+          utilized: userUtilized
+        };
+      });
+
+      setEmployees(formattedEmps);
+
+      const utilized = companyPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      const donors = new Set(companyPayments.map((p: any) => p.userId || p.email)).size;
+      const allocated = allocatedPerEmp * Math.max(1, formattedEmps.length);
+
+      setRealMetrics({
+        totalAllocated: allocated,
+        totalUtilized: utilized,
+        donorCount: donors,
+        avgPerUser: donors > 0 ? Math.round(utilized / donors) : 0
+      });
     } catch(e) {
       console.error(e);
     } finally {
@@ -58,7 +111,7 @@ export function CompanyGivingBudgets() {
   const saveBudgetConfig = async () => {
     try {
       setSaving(true);
-      const companyId = user?.email?.split('@')[1];
+      const companyId = roleInfo?.company?.id || user?.email?.split('@')[1];
       if (!companyId) {
         toast.error("Could not determine company");
         return;
@@ -69,11 +122,12 @@ export function CompanyGivingBudgets() {
         amount: globalAmount,
         frequency,
         type: budgetType,
+        matchRatio,
         updatedAt: new Date(),
         updatedBy: user?.email
       }, { merge: true });
       
-      toast.success('Budget configuration saved globally.');
+      toast.success('Budget configuration & match multiplier saved.');
     } catch(e) {
       console.error(e);
       toast.error('Failed to save configuration');
@@ -82,9 +136,9 @@ export function CompanyGivingBudgets() {
     }
   };
 
-  const filteredEmployees = mockEmployees.filter(emp => 
-    emp.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    emp.email.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredEmployees = employees.filter(emp => 
+    (emp.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (emp.email || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -144,7 +198,7 @@ export function CompanyGivingBudgets() {
                 </div>
 
                 <div className="space-y-3">
-                  <Label>Budget Type</Label>
+                  <Label>Budget Type & Match Multiplier</Label>
                   <div className="flex flex-col gap-3">
                     <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
                       <input 
@@ -167,12 +221,32 @@ export function CompanyGivingBudgets() {
                         onChange={() => setBudgetType('matching')}
                         className="mt-1" 
                       />
-                      <div>
+                      <div className="flex-1">
                         <div className="font-medium">Matching Cap</div>
                         <div className="text-sm text-gray-500">Maximum amount the company will match for employee donations.</div>
                       </div>
                     </label>
                   </div>
+
+                  {budgetType === 'matching' && (
+                    <div className="pt-3 space-y-2 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+                      <Label className="text-xs font-bold text-indigo-900 uppercase tracking-wider">Corporate Match Multiplier Ratio</Label>
+                      <Select value={matchRatio} onValueChange={setMatchRatio}>
+                        <SelectTrigger className="bg-white border-indigo-200">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1:1">1 : 1 Standard Match (Company matches 100% of employee donation)</SelectItem>
+                          <SelectItem value="2:1">2 : 1 Double Match (Company contributes $2 for every $1 donated)</SelectItem>
+                          <SelectItem value="0.5:1">0.5 : 1 Partial Match (Company contributes 50% match)</SelectItem>
+                          <SelectItem value="3:1">3 : 1 Triple Executive Impact Match (Company contributes $3 for every $1)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-indigo-700/80">
+                        Selected Ratio: <span className="font-bold">{matchRatio}</span> multiplier will automatically calculate corporate funds for every employee pledge.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -187,31 +261,33 @@ export function CompanyGivingBudgets() {
         <Card>
           <CardHeader>
             <CardTitle>Budget Overview</CardTitle>
-            <CardDescription>Current fiscal year utilization</CardDescription>
+            <CardDescription>Current fiscal year utilization from Firestore</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-gray-500">Total Allocated</span>
-                <span className="font-bold text-gray-900">₹3,250,000</span>
+                <span className="font-bold text-gray-900">₹{realMetrics.totalAllocated.toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-gray-500">Total Utilized</span>
-                <span className="font-bold text-blue-600">₹1,420,000</span>
+                <span className="font-bold text-blue-600">₹{realMetrics.totalUtilized.toLocaleString()}</span>
               </div>
-              <Progress value={43} className="h-2 mt-4" />
-              <p className="text-xs text-center text-gray-500 mt-2">43% utilization rate</p>
+              <Progress value={Math.min(100, Math.round((realMetrics.totalUtilized / (realMetrics.totalAllocated || 1)) * 100))} className="h-2 mt-4" />
+              <p className="text-xs text-center text-gray-500 mt-2">
+                {Math.min(100, Math.round((realMetrics.totalUtilized / (realMetrics.totalAllocated || 1)) * 100))}% utilization rate
+              </p>
             </div>
             
             <div className="pt-4 border-t">
               <h4 className="text-sm font-medium mb-3">Quick Stats</h4>
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div className="bg-blue-50 rounded-lg p-3">
-                  <div className="text-2xl font-bold text-blue-700">124</div>
+                  <div className="text-2xl font-bold text-blue-700">{realMetrics.donorCount}</div>
                   <div className="text-xs text-blue-600">Active Donors</div>
                 </div>
                 <div className="bg-green-50 rounded-lg p-3">
-                  <div className="text-2xl font-bold text-green-700">₹11k</div>
+                  <div className="text-2xl font-bold text-green-700">₹{realMetrics.avgPerUser.toLocaleString()}</div>
                   <div className="text-xs text-green-600">Avg. per user</div>
                 </div>
               </div>

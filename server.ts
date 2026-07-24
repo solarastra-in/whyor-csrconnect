@@ -127,8 +127,13 @@ async function startServer() {
       // Also log audit
       await getFirestore().collection('platform/auditLog/events').add({
         action: 'UPDATE_COMPANY_SMTP',
+        actor: requester.email || 'Company Admin',
+        performedBy: requester.email || 'Company Admin',
+        entity: `Company: ${req.params.id}`,
         companyId: req.params.id,
-        performedBy: requester.email,
+        type: 'config',
+        status: 'success',
+        ipAddress: req.ip || '127.0.0.1',
         timestamp: new Date()
       });
       
@@ -154,7 +159,12 @@ async function startServer() {
       
       await getFirestore().collection('platform/auditLog/events').add({
         action: 'UPDATE_PLATFORM_SMTP',
-        performedBy: requester.email,
+        actor: requester.email || 'Platform Admin',
+        performedBy: requester.email || 'Platform Admin',
+        entity: 'Platform Settings',
+        type: 'config',
+        status: 'success',
+        ipAddress: req.ip || '127.0.0.1',
         timestamp: new Date()
       });
       

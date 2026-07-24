@@ -104,26 +104,30 @@ export function SecurityAuditLog() {
                   <tr key={log.id} className={`border-b hover:bg-gray-50 ${i === filteredLogs.length - 1 ? 'border-b-0' : ''}`}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {getIconForType(log.type)}
-                        <span className="font-medium text-gray-900">{log.action}</span>
+                        {getIconForType(log.type || (
+                          (log.action || '').toLowerCase().includes('status') || (log.action || '').toLowerCase().includes('approve') ? 'onboarding' :
+                          (log.action || '').toLowerCase().includes('role') ? 'role' :
+                          (log.action || '').toLowerCase().includes('setting') || (log.action || '').toLowerCase().includes('config') ? 'config' : 'security'
+                        ))}
+                        <span className="font-medium text-gray-900">{log.action || 'System Event'}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col">
-                        <span className="text-gray-900">{log.actor}</span>
-                        <span className="text-xs text-gray-500">{log.ipAddress}</span>
+                        <span className="text-gray-900">{log.performedBy || log.actor || log.userEmail || 'Platform Admin'}</span>
+                        <span className="text-xs text-gray-500">{log.ipAddress || 'Internal Workspace'}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-700 max-w-[200px] truncate" title={log.entity}>
-                      {log.entity}
+                    <td className="px-4 py-3 text-gray-700 max-w-[200px] truncate" title={log.entity || log.charityId || log.companyId || log.details || 'System Workspace'}>
+                      {log.entity || (log.charityId ? `NGO ID: ${log.charityId}` : log.companyId ? `Company ID: ${log.companyId}` : log.details || 'System Workspace')}
                     </td>
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
-                      {new Date(log.timestamp).toLocaleString()}
+                      {log.timestamp?.toDate ? log.timestamp.toDate().toLocaleString() : new Date(log.timestamp || Date.now()).toLocaleString()}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant={log.status === 'success' ? 'secondary' : 'destructive'} 
-                             className={log.status === 'success' ? 'bg-green-100 text-green-700 hover:bg-green-100' : ''}>
-                        {log.status}
+                      <Badge variant={(log.status || 'success') === 'success' ? 'secondary' : 'destructive'} 
+                             className={(log.status || 'success') === 'success' ? 'bg-green-100 text-green-700 hover:bg-green-100' : ''}>
+                        {log.status || 'success'}
                       </Badge>
                     </td>
                   </tr>

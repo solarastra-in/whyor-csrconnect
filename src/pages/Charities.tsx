@@ -195,8 +195,13 @@ export function Charities() {
             if (auth.currentUser) {
               await addDoc(collection(db, 'platform/auditLog/events'), {
                 action: action === 'approve' ? 'APPROVE_CHARITY' : 'REJECT_CHARITY',
+                actor: auth.currentUser.email || 'Platform Admin',
+                performedBy: auth.currentUser.email || 'Platform Admin',
+                entity: `NGO ID: ${id}`,
                 charityId: id,
-                performedBy: auth.currentUser.email,
+                type: 'onboarding',
+                status: 'success',
+                ipAddress: '127.0.0.1',
                 timestamp: new Date().getTime()
               });
             }

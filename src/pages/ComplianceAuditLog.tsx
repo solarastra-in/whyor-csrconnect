@@ -4,13 +4,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
-import { Loader2, ShieldCheck, Download, Search, RefreshCw } from 'lucide-react';
+import { Loader2, ShieldCheck, Download, Search, RefreshCw, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export function ComplianceAuditLog() {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasPermissionError, setHasPermissionError] = useState(false);
 
   // Filters state
   const [actionFilter, setActionFilter] = useState('');
@@ -23,13 +24,18 @@ export function ComplianceAuditLog() {
   }, []);
 
   const fetchLogs = async () => {
+    setLoading(true);
+    setHasPermissionError(false);
     try {
       const q = query(collection(db, 'platform/auditLog/events'), orderBy('timestamp', 'desc'));
       const snap = await getDocs(q);
       const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setLogs(data);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Error fetching audit logs:', e);
+      if (e?.code === 'permission-denied' || e?.message?.includes('permission')) {
+        setHasPermissionError(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -114,6 +120,24 @@ export function ComplianceAuditLog() {
     link.click();
     document.body.removeChild(link);
   };
+
+  if (hasPermissionError) {
+    return (
+      <div className="max-w-3xl mx-auto py-12">
+        <Card className="border-red-200 bg-red-50/50 shadow-sm">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-red-100 border border-red-200 flex items-center justify-center mb-2">
+              <ShieldAlert className="w-6 h-6 text-red-600" />
+            </div>
+            <CardTitle className="text-xl text-red-900">Platform Staff Access Required</CardTitle>
+            <CardDescription className="text-red-700/90 max-w-md mx-auto mt-1">
+              Platform compliance and administrative audit trails are restricted exclusively to authorized Platform Staff and Governance Administrators.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
