@@ -117,20 +117,47 @@ export function ResourceHub() {
   };
 
   const handleDownload = (resource: ResourceItem) => {
-    // Generate a downloadable text file representing the toolkit
-    const textContent = `=== ${resource.title} ===\nCategory: ${resource.category.toUpperCase()}\nFile Type: ${resource.fileType}\nDownloaded from Corporate CSR Employee Portal\n\nOverview:\n${resource.description}\n\nTags: ${resource.tags.join(', ')}\n\nCSR Policy Compliance Note: Always ensure manager pre-approval for VTO leave hours.`;
-    const blob = new Blob([textContent], { type: 'text/plain' });
+    // Generate a downloadable document guide representing the toolkit
+    const textContent = `================================================================
+CORPORATE CSR RESOURCE HUB - OFFICIAL GUIDE & TOOLKIT
+================================================================
+Title:       ${resource.title}
+Category:    ${resource.category.toUpperCase()}
+Document Ref: ${resource.id.toUpperCase()}
+Generated:   ${new Date().toLocaleDateString()}
+Portal:      Corporate Volunteer Platform
+
+----------------------------------------------------------------
+1. EXECUTIVE OVERVIEW & DESCRIPTION
+----------------------------------------------------------------
+${resource.description}
+
+----------------------------------------------------------------
+2. KEY POLICIES & TAGS
+----------------------------------------------------------------
+Tags: ${resource.tags.join(', ')}
+
+----------------------------------------------------------------
+3. COMPLIANCE & SAFETY PROTOCOLS
+----------------------------------------------------------------
+- Always ensure manager pre-approval for VTO (Volunteer Time Off) hours.
+- Adhere strictly to beneficiary photo consent and safety guidelines on-site.
+- Log all completed volunteer hours on the corporate portal for matching grant eligibility.
+
+================================================================
+`;
+    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${resource.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${resource.fileType.toLowerCase()}`;
+    a.download = `${resource.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_guide.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
     toast.success(`Downloaded ${resource.title}`, {
-      description: `Saved as ${resource.fileType} template file.`
+      description: `Saved official document guide as text file.`
     });
   };
 

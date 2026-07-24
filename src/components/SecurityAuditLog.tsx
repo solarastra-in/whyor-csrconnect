@@ -7,39 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { db } from '@/src/lib/firebase';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 
-const INITIAL_FALLBACK_LOGS = [
-  {
-    id: 'audit-1',
-    type: 'security',
-    action: 'Platform Admin Sign-In',
-    actor: 'admin@csrconnect.org',
-    ipAddress: '10.0.4.12',
-    entity: 'Authentication Session',
-    timestamp: new Date(Date.now() - 3600000).toISOString(),
-    status: 'success'
-  },
-  {
-    id: 'audit-2',
-    type: 'onboarding',
-    action: 'NGO Document Verification',
-    actor: 'Compliance System',
-    ipAddress: 'Internal System',
-    entity: 'EcoBharat Foundation 80G/12A',
-    timestamp: new Date(Date.now() - 7200000).toISOString(),
-    status: 'success'
-  },
-  {
-    id: 'audit-3',
-    type: 'config',
-    action: 'Disbursement Threshold Updated',
-    actor: 'finance@csrconnect.org',
-    ipAddress: '192.168.1.45',
-    entity: 'Platform Fee Config',
-    timestamp: new Date(Date.now() - 86400000).toISOString(),
-    status: 'success'
-  }
-];
-
 const getIconForType = (type: string) => {
   switch (type) {
     case 'onboarding': return <Building className="h-4 w-4 text-blue-500" />;
@@ -53,7 +20,7 @@ const getIconForType = (type: string) => {
 export function SecurityAuditLog() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [logs, setLogs] = useState<any[]>(INITIAL_FALLBACK_LOGS);
+  const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -62,14 +29,13 @@ export function SecurityAuditLog() {
 
   const fetchAuditLogs = async () => {
     try {
-      const q = query(collection(db, 'auditLog'), limit(20));
+      const q = query(collection(db, 'platform/auditLog/events'), orderBy('timestamp', 'desc'), limit(50));
       const snap = await getDocs(q);
-      if (!snap.empty) {
-        const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setLogs(fetched);
-      }
+      const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setLogs(fetched);
     } catch (e) {
-      console.log('Using fallback security logs:', e);
+      console.error('Error fetching security audit logs:', e);
+      setLogs([]);
     } finally {
       setLoading(false);
     }

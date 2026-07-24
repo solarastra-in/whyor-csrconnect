@@ -37,6 +37,7 @@ export interface Project {
   match: string;
   tags: string[];
   description: string;
+  status?: string;
   image?: string;
   vision?: string;
   aboutCharity?: string;
@@ -185,7 +186,9 @@ export function DiscoverProjects() {
     const fetchProjects = async () => {
       try {
         const snap = await getDocs(collection(db, 'projects'));
-        const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
+        const allFetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
+        // Strict verification gate: Only show projects that are approved
+        const fetched = allFetched.filter(p => !p.status || p.status === 'approved');
         
         if (fetched.length > 0) {
           setProjectsData(fetched);

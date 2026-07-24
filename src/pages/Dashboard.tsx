@@ -11,22 +11,13 @@ import { SecurityAuditLog } from '@/src/components/SecurityAuditLog';
 
 export function Dashboard() {
   const [stats, setStats] = useState({
-    totalFunds: '₹4.25 Cr',
+    totalFunds: '₹0',
     activeCharities: 0,
     partnerCompanies: 0,
     volunteers: 0
   });
 
-  const [chartData, setChartData] = useState<any[]>([
-    { month: 'Jan', donations: 450 },
-    { month: 'Feb', donations: 620 },
-    { month: 'Mar', donations: 800 },
-    { month: 'Apr', donations: 1100 },
-    { month: 'May', donations: 1450 },
-    { month: 'Jun', donations: 1900 },
-    { month: 'Jul', donations: 2450 }
-  ]);
-
+  const [chartData, setChartData] = useState<any[]>([]);
   const [topProjects, setTopProjects] = useState<any[]>([]);
   const [pendingProjects, setPendingProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +31,7 @@ export function Dashboard() {
     try {
       // 1. Fetch charities count
       const charitiesSnap = await getDocs(collection(db, 'charities'));
-      const activeCharitiesCount = charitiesSnap.docs.filter(d => d.data().status === 'approved' || !d.data().status).length || charitiesSnap.size;
+      const activeCharitiesCount = charitiesSnap.docs.filter(d => d.data().status === 'approved').length;
 
       // 2. Fetch companies count
       const companiesSnap = await getDocs(collection(db, 'companies'));
@@ -50,19 +41,60 @@ export function Dashboard() {
       const usersSnap = await getDocs(collection(db, 'users'));
       const usersCount = usersSnap.size;
 
-      // 4. Fetch payments & total funds
+      // 4. Fetch payments & total funds + monthly aggregation
       const paymentsSnap = await getDocs(collection(db, 'payments'));
       const totalAmount = paymentsSnap.docs.reduce((sum, d) => sum + (Number(d.data().amount) || 0), 0);
-      const formattedFunds = totalAmount > 0 
-        ? `₹${(totalAmount / 10000000).toFixed(2)} Cr` 
-        : '₹4.25 Cr';
+      
+      let formattedFunds = '₹0';
+      if (totalAmount >= 10000000) {
+        formattedFunds = `₹${(totalAmount / 10000000).toFixed(2)} Cr`;
+      } else if (totalAmount >= 100000) {
+        formattedFunds = `₹${(totalAmount / 100000).toFixed(2)} Lakhs`;
+      } else if (totalAmount > 0) {
+        formattedFunds = `₹${totalAmount.toLocaleString('en-IN')}`;
+      }
 
       setStats({
         totalFunds: formattedFunds,
-        activeCharities: activeCharitiesCount || 142,
-        partnerCompanies: companiesCount || 56,
-        volunteers: usersCount || 12450
+        activeCharities: activeCharitiesCount,
+        partnerCompanies: companiesCount,
+        volunteers: usersCount
       });
+
+      // Calculate real monthly chart data from payments
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthlyMap: Record<string, number> = {};
+      const now = new Date();
+      
+      // Initialize past 6 months with 0
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const label = monthNames[d.getMonth()];
+        monthlyMap[label] = 0;
+      }
+
+      paymentsSnap.docs.forEach(doc => {
+        const data = doc.data();
+        const amt = Number(data.amount) || 0;
+        let pDate = new Date();
+        if (data.createdAt?.toDate) {
+          pDate = data.createdAt.toDate();
+        } else if (data.createdAt) {
+          pDate = new Date(data.createdAt);
+        } else if (data.date) {
+          pDate = new Date(data.date);
+        }
+        const mLabel = monthNames[pDate.getMonth()];
+        if (mLabel in monthlyMap) {
+          monthlyMap[mLabel] += amt;
+        }
+      });
+
+      const computedChart = Object.keys(monthlyMap).map(m => ({
+        month: m,
+        donations: monthlyMap[m]
+      }));
+      setChartData(computedChart);
 
       // 5. Fetch Projects for Top Projects & Validation Queue
       const projectsSnap = await getDocs(collection(db, 'projects'));
@@ -70,49 +102,18 @@ export function Dashboard() {
 
       // Pending validations
       const pendingList = allProjects.filter((p: any) => p.status === 'pending' || p.status === 'pending_verification');
-      
-      // Fallback example for pending queue if empty for demo
-      if (pendingList.length === 0) {
-        setPendingProjects([
-          {
-            id: 'demo-pending-1',
-            title: 'Clean River Ganga Restoration Drive',
-            charityName: 'EcoBharat Foundation',
-            companyName: 'Acme Corp',
-            category: 'Environment',
-            createdAtStr: 'Submitted 2 hours ago'
-          },
-          {
-            id: 'demo-pending-2',
-            title: 'Youth Coding & Digital Mentorship',
-            charityName: 'Shiksha India Trust',
-            companyName: 'Global Tech',
-            category: 'Education',
-            createdAtStr: 'Submitted 5 hours ago'
-          }
-        ]);
-      } else {
-        setPendingProjects(pendingList);
-      }
+      setPendingProjects(pendingList);
 
       // Top Projects
       const approvedList = allProjects.filter((p: any) => p.status === 'approved' || !p.status);
-      if (approvedList.length > 0) {
-        const sorted = approvedList.sort((a: any, b: any) => (b.targetHours || 0) - (a.targetHours || 0)).slice(0, 3);
-        setTopProjects(sorted.map((p: any) => ({
-          id: p.id,
-          name: p.title || 'CSR Initiative',
-          charity: p.charityName || 'Partner NGO',
-          funds: `₹${((p.targetHours || 50) * 1000).toLocaleString()}`,
-          progress: Math.min(85, Math.max(30, (p.volunteersCount || 5) * 10))
-        })));
-      } else {
-        setTopProjects([
-          { id: '1', name: 'Clean Ganga Initiative', charity: 'Jal Foundation', funds: '₹2.4 Cr', progress: 85 },
-          { id: '2', name: 'Rural Education Drive', charity: 'Vidya Trust', funds: '₹1.2 Cr', progress: 60 },
-          { id: '3', name: 'Solar for Villages', charity: 'Green Future', funds: '₹85 Lakhs', progress: 40 },
-        ]);
-      }
+      const sorted = approvedList.sort((a: any, b: any) => (b.targetHours || 0) - (a.targetHours || 0)).slice(0, 3);
+      setTopProjects(sorted.map((p: any) => ({
+        id: p.id,
+        name: p.title || 'CSR Initiative',
+        charity: p.charityName || 'Partner NGO',
+        funds: `₹${((p.targetHours || 50) * 1000).toLocaleString()}`,
+        progress: Math.min(100, Math.max(10, (p.volunteersCount || 0) * 10))
+      })));
 
     } catch (e) {
       console.error('Error fetching dashboard data:', e);

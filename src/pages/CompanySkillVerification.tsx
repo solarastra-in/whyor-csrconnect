@@ -52,61 +52,10 @@ const POPULAR_VOLUNTEER_SKILLS = [
   'Environmental Sanitation & Waste Mgmt',
 ];
 
-const INITIAL_PEER_ENDORSEMENTS: PeerEndorsement[] = [
-  {
-    id: 'pe-1',
-    endorserName: 'Ananya Sharma',
-    endorserRole: 'Senior Data Analyst',
-    colleagueName: 'Sarah Jenkins',
-    colleagueDepartment: 'Engineering',
-    skill: 'Event Leadership & Coordination',
-    activity: 'Urban Riverbank Cleanliness Drive',
-    endorsementNote: 'Sarah flawlessly coordinated over 50 volunteers across 3 zones, ensuring safety gear was distributed and managing waste disposal logistics perfectly!',
-    createdAt: '2026-07-22',
-    agreeCount: 12,
-  },
-  {
-    id: 'pe-2',
-    endorserName: 'David Chen',
-    endorserRole: 'Product Designer',
-    colleagueName: 'Rohan Mehta',
-    colleagueDepartment: 'Product & UX',
-    skill: 'Youth Mentorship & Coaching',
-    activity: 'Tech Skills Workshop for Youth',
-    endorsementNote: 'Rohan spent 4 hours patiently teaching high school students basic coding concepts. His empathy and ability to simplify complex topics inspired the entire group!',
-    createdAt: '2026-07-21',
-    agreeCount: 8,
-  },
-  {
-    id: 'pe-3',
-    endorserName: 'Priya Patel',
-    endorserRole: 'HR Manager',
-    colleagueName: 'David Chen',
-    colleagueDepartment: 'Design',
-    skill: 'Sign Language Translation',
-    activity: 'Senior Citizen Digital Literacy Program',
-    endorsementNote: 'David provided real-time sign language assistance for hearing-impaired attendees, making our workshop genuinely inclusive for everyone.',
-    createdAt: '2026-07-19',
-    agreeCount: 15,
-  },
-  {
-    id: 'pe-4',
-    endorserName: 'Marcus Vance',
-    endorserRole: 'DevOps Lead',
-    colleagueName: 'Emily Taylor',
-    colleagueDepartment: 'Operations',
-    skill: 'First Aid & Emergency Response',
-    activity: 'Blood Donation & Medical Relief Camp',
-    endorsementNote: 'Emily quickly handled a minor hydration emergency during the drive with calm professionalism and certified medical care.',
-    createdAt: '2026-07-18',
-    agreeCount: 6,
-  }
-];
-
 export function CompanySkillVerification() {
   const { user } = useAuth();
   const [verifications, setVerifications] = useState<any[]>([]);
-  const [endorsements, setEndorsements] = useState<PeerEndorsement[]>(INITIAL_PEER_ENDORSEMENTS);
+  const [endorsements, setEndorsements] = useState<PeerEndorsement[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'peer_endorsements' | 'official_verifications'>('peer_endorsements');
 
@@ -140,34 +89,7 @@ export function CompanySkillVerification() {
       const q = query(collection(db, 'skillVerifications'), where('companyDomain', '==', companyDomain));
       const snapshot = await getDocs(q);
       
-      let data: any[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      // Seed with mock data if empty
-      if (data.length === 0) {
-        data = [
-          {
-            id: 'mock-1',
-            employeeName: 'Sarah Jenkins',
-            department: 'Engineering',
-            skill: 'First Aid / CPR',
-            submittedAt: '2026-06-28',
-            status: 'pending',
-            proofUrl: '#',
-            notes: 'Completed American Red Cross certification'
-          },
-          {
-            id: 'mock-2',
-            employeeName: 'David Chen',
-            department: 'Design',
-            skill: 'Sign Language',
-            submittedAt: '2026-06-29',
-            status: 'pending',
-            proofUrl: '#',
-            notes: 'ASL Level 2 certification'
-          }
-        ];
-      }
-      
+      const data: any[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setVerifications(data);
     } catch(e) {
       console.error(e);
@@ -183,10 +105,8 @@ export function CompanySkillVerification() {
       const q = query(collection(db, 'peerEndorsements'), where('companyDomain', '==', companyDomain));
       const snapshot = await getDocs(q);
 
-      if (!snapshot.empty) {
-        const remoteData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PeerEndorsement));
-        setEndorsements(prev => [...remoteData, ...INITIAL_PEER_ENDORSEMENTS]);
-      }
+      const remoteData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PeerEndorsement));
+      setEndorsements(remoteData);
     } catch (e) {
       console.error('Peer endorsements fetch error:', e);
     }

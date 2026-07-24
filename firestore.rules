@@ -153,7 +153,7 @@ service cloud.firestore {
     match /grants/{grantId} {
       allow read: if isSignedIn();
       allow create: if isCompanyMember(request.resource.data.companyId) || 
-        request.resource.data.companyId == 'general_pool' ||
+        (isSignedIn() && request.resource.data.companyId == 'general_pool' && isNgoAdmin(request.resource.data.ngoId)) ||
         (isSignedIn() && isNgoAdmin(request.resource.data.ngoId));
       allow update, delete: if isPlatformAdmin() || isCompanyMember(resource.data.companyId) ||
         (resource.data.companyId == 'general_pool' && (isPlatformAdmin() || isPlatformStaff()));

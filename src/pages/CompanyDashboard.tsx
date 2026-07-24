@@ -15,6 +15,8 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/src/lib/firebase';
 
 import { CSREventsCalendar } from '@/src/components/CSREventsCalendar';
 import { CompanyRecentActivityFeed } from '@/src/components/CompanyRecentActivityFeed';
@@ -39,17 +41,30 @@ export function CompanyDashboard() {
     activeCampaigns: true,
   });
 
-  // Annual Volunteer Target & Toast Alert State
+  // Annual Volunteer Target State
   const [targetHours, setTargetHours] = useState<number>(10000);
-  const [completedHours, setCompletedHours] = useState<number>(7845);
-  const [addHoursInput, setAddHoursInput] = useState<string>('500');
+  const [completedHours, setCompletedHours] = useState<number>(0);
   const [notifiedMilestones, setNotifiedMilestones] = useState<{ [key: number]: boolean }>({
-    50: true,
-    75: true,
+    50: false,
+    75: false,
     100: false,
   });
 
   const prevHoursRef = useRef<number>(completedHours);
+
+  // Fetch real volunteer commitments for company to calculate total hours
+  useEffect(() => {
+    const fetchCompanyHours = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'commitments'));
+        const total = snap.docs.reduce((sum, doc) => sum + (Number(doc.data().hoursPledged) || 0), 0);
+        setCompletedHours(total);
+      } catch (e) {
+        console.error('Error fetching company volunteer hours:', e);
+      }
+    };
+    fetchCompanyHours();
+  }, []);
 
   // Milestone Toast Trigger logic on target progress changes (50%, 75%, 100%)
   useEffect(() => {
@@ -96,29 +111,6 @@ export function CompanyDashboard() {
 
     prevHoursRef.current = completedHours;
   }, [completedHours, targetHours, notifiedMilestones]);
-
-  const handleSimulateMilestone = (thresholdPct: number) => {
-    const hours = Math.round((targetHours * thresholdPct) / 100);
-    setNotifiedMilestones(prev => ({ ...prev, [thresholdPct]: false }));
-    setCompletedHours(hours);
-  };
-
-  const handleAddHours = (e: React.FormEvent) => {
-    e.preventDefault();
-    const val = parseInt(addHoursInput, 10);
-    if (isNaN(val) || val <= 0) return;
-    const nextTotal = completedHours + val;
-    setCompletedHours(nextTotal);
-    toast.success(`Logged +${val} volunteer hours!`, {
-      description: `New Total: ${nextTotal.toLocaleString()} / ${targetHours.toLocaleString()} hrs (${((nextTotal / targetHours) * 100).toFixed(1)}%)`
-    });
-  };
-
-  const handleResetProgress = () => {
-    setCompletedHours(4500); // 45% (below 50%)
-    setNotifiedMilestones({ 50: false, 75: false, 100: false });
-    toast.info('Reset progress to 4,500 hrs (45%). All milestone alerts unlocked for testing.');
-  };
 
   // Load from local storage on mount
   useEffect(() => {
@@ -319,15 +311,6 @@ export function CompanyDashboard() {
                   </div>
                 </PopoverContent>
               </Popover>
-
-              <Button 
-                onClick={handleResetProgress} 
-                variant="outline" 
-                size="sm" 
-                className="bg-white text-xs gap-1 hover:bg-slate-50 text-slate-700"
-              >
-                <RotateCcw className="w-3.5 h-3.5 text-slate-500" /> Reset to 45%
-              </Button>
             </div>
           </div>
         </CardHeader>
@@ -439,68 +422,6 @@ export function CompanyDashboard() {
                   <p className="text-xs font-semibold text-slate-800">{targetHours.toLocaleString()} Hours</p>
                   <p className="text-[11px] text-slate-500 mt-0.5">Triggers goal completion celebration toast</p>
                 </div>
-              </div>
-            </div>
-
-            {/* Admin Simulation & Manual Log Controls */}
-            <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
-              <div>
-                <h4 className="font-bold text-sm text-slate-900 flex items-center gap-1.5 mb-1">
-                  <Sparkles className="w-4 h-4 text-indigo-600" /> Test Toast Notification System
-                </h4>
-                <p className="text-xs text-slate-500 mb-3">
-                  Click a milestone button to jump hours and immediately test the admin toast alerts live:
-                </p>
-
-                <div className="grid grid-cols-3 gap-2 mb-4">
-                  <Button 
-                    onClick={() => handleSimulateMilestone(50)} 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 font-semibold"
-                  >
-                    🎯 50% Toast
-                  </Button>
-                  <Button 
-                    onClick={() => handleSimulateMilestone(75)} 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-xs bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100 font-semibold"
-                  >
-                    🚀 75% Toast
-                  </Button>
-                  <Button 
-                    onClick={() => handleSimulateMilestone(100)} 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-xs bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-semibold"
-                  >
-                    🏆 100% Toast
-                  </Button>
-                </div>
-
-                <div className="border-t pt-3">
-                  <span className="text-xs font-semibold text-slate-700 block mb-2">Log New Volunteer Hours</span>
-                  <form onSubmit={handleAddHours} className="flex gap-2">
-                    <Input 
-                      type="number" 
-                      value={addHoursInput} 
-                      onChange={e => setAddHoursInput(e.target.value)} 
-                      placeholder="e.g. 250" 
-                      className="h-8 text-xs"
-                    />
-                    <Button type="submit" size="sm" className="h-8 bg-indigo-600 text-white hover:bg-indigo-700 text-xs gap-1 font-medium whitespace-nowrap">
-                      <PlusCircle className="w-3.5 h-3.5" /> Add Hours
-                    </Button>
-                  </form>
-                </div>
-              </div>
-
-              <div className="p-2.5 bg-indigo-50/60 rounded-lg border border-indigo-100 text-[11px] text-indigo-900 flex items-start gap-2">
-                <Bell className="w-3.5 h-3.5 text-indigo-600 shrink-0 mt-0.5" />
-                <span>
-                  Admin notifications persist across session state and fire dynamically as employees complete volunteering activities.
-                </span>
               </div>
             </div>
           </div>

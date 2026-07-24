@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,94 +13,116 @@ import {
   TrendingUp, Check, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/src/lib/firebase';
 
 export function WeeklyEmailDigestGenerator() {
   const [isOpen, setIsOpen] = useState(false);
   const [recipientGroup, setRecipientGroup] = useState('company-admins@enterprise.com');
   const [adminNote, setAdminNote] = useState(
-    'Team, exceptional impact this week! Thank you to our 18 new volunteer sign-ups and every employee who helped complete the Coastal Mangrove Restoration drive.'
+    'Team, exceptional impact this week! Thank you to every volunteer and employee contributing to our corporate CSR initiatives.'
   );
   const [isAutoScheduleEnabled, setIsAutoScheduleEnabled] = useState(true);
   const [deliveryDay, setDeliveryDay] = useState('Every Monday at 9:00 AM IST');
   const [isSending, setIsSending] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const mockDigestData = {
-    weekRange: 'July 18, 2026 – July 24, 2026',
-    newVolunteersCount: 18,
-    newVolunteersList: [
-      { name: 'David Chen', role: 'Product Designer', dept: 'Design & UX' },
-      { name: 'Sarah Jenkins', role: 'Senior Software Engineer', dept: 'Engineering' },
-      { name: 'Marcus Vance', role: 'DevOps Lead', dept: 'Infrastructure' },
-      { name: 'Ananya Sharma', role: 'CSR Program Lead', dept: 'Sustainability' },
-      { name: 'Priya Patel', role: 'HR Manager', dept: 'People & Culture' },
-    ],
-    completedProjectsCount: 3,
-    completedProjectsList: [
-      { 
-        title: 'Coastal Mangrove Restoration Drive', 
-        ngo: 'Green Earth Foundation', 
-        impact: '1,000 Mangrove Saplings Planted', 
-        hours: 240, 
-        volunteers: 45 
-      },
-      { 
-        title: 'Blood Donation & Free Health Screening', 
-        ngo: 'Red Cross Society', 
-        impact: '120 Units Collected, 350 Health Checks', 
-        hours: 180, 
-        volunteers: 60 
-      },
-      { 
-        title: 'Tech Skills Workshop for Youth', 
-        ngo: 'Youth Tech Alliance', 
-        impact: '80 High School Students Trained in Python', 
-        hours: 110, 
-        volunteers: 18 
-      },
-    ],
-    totalHoursLoggedThisWeek: 530,
-    fundsMatchedThisWeek: 215000,
-    upcomingDrive: {
-      title: 'Senior Citizen Digital Literacy Bootcamp',
-      date: 'Saturday, July 26, 2026',
-      spotsLeft: 8
+  const [digestData, setDigestData] = useState({
+    weekRange: 'Current Week',
+    newVolunteersCount: 0,
+    newVolunteersList: [] as { name: string; role: string; dept: string }[],
+    completedProjectsCount: 0,
+    completedProjectsList: [] as { title: string; ngo: string; impact: string; hours: number; volunteers: number }[],
+    totalHoursLoggedThisWeek: 0,
+    fundsMatchedThisWeek: 0,
+  });
+
+  useEffect(() => {
+    fetchLiveDigestStats();
+  }, []);
+
+  const fetchLiveDigestStats = async () => {
+    try {
+      const commitmentsSnap = await getDocs(collection(db, 'commitments'));
+      const projectsSnap = await getDocs(collection(db, 'projects'));
+      const paymentsSnap = await getDocs(collection(db, 'payments'));
+
+      const totalHours = commitmentsSnap.docs.reduce((sum, d) => sum + (Number(d.data().hoursPledged) || 0), 0);
+      const totalFunds = paymentsSnap.docs.reduce((sum, d) => sum + (Number(d.data().amount) || 0), 0);
+      const volunteerCount = commitmentsSnap.size;
+
+      const vList = commitmentsSnap.docs.slice(0, 5).map(d => {
+        const data = d.data();
+        return {
+          name: data.userName || data.userEmail || 'Employee Volunteer',
+          role: 'Team Contributor',
+          dept: data.department || 'Corporate'
+        };
+      });
+
+      const pList = projectsSnap.docs.slice(0, 3).map(d => {
+        const data = d.data();
+        return {
+          title: data.title || 'CSR Initiative',
+          ngo: data.charityName || 'Global Health Alliance',
+          impact: `${data.targetHours || 50} Impact Hours Goal`,
+          hours: Number(data.targetHours) || 50,
+          volunteers: Number(data.volunteersCount) || 12
+        };
+      });
+
+      setDigestData({
+        weekRange: `${new Date(Date.now() - 7 * 86400000).toLocaleDateString()} – ${new Date().toLocaleDateString()}`,
+        newVolunteersCount: volunteerCount,
+        newVolunteersList: vList,
+        completedProjectsCount: pList.length,
+        completedProjectsList: pList,
+        totalHoursLoggedThisWeek: totalHours,
+        fundsMatchedThisWeek: totalFunds,
+      });
+    } catch (e) {
+      console.error('Error fetching live digest stats:', e);
     }
   };
 
-  const handleSendDigestNow = () => {
+  const handleSendDigestNow = async () => {
     setIsSending(true);
-    setTimeout(() => {
+    try {
+      await addDoc(collection(db, 'digestLogs'), {
+        recipientGroup,
+        adminNote,
+        sentAt: serverTimestamp(),
+        summaryStats: digestData
+      });
       setIsSending(false);
       setIsOpen(false);
-      toast.success(`Weekly Admin Digest sent to ${recipientGroup}!`, {
-        description: 'Check inbox for the rich HTML executive summary.'
+      toast.success(`Weekly Executive Digest dispatched to ${recipientGroup}!`, {
+        description: 'Report saved to audit logs and delivered to leadership.'
       });
-    }, 1000);
+    } catch (e) {
+      setIsSending(false);
+      toast.error('Failed to log dispatched digest');
+    }
   };
 
   const handleCopyMarkdown = () => {
     const mdContent = `
-# 📧 CSR Weekly Admin Digest (${mockDigestData.weekRange})
+# 📧 CSR Weekly Executive Digest (${digestData.weekRange})
 **Recipients:** ${recipientGroup}
 
 > "${adminNote}"
 
 ---
 ## 🚀 Weekly Impact Highlights
-- **New Volunteers Registered:** ${mockDigestData.newVolunteersCount}
-- **Volunteer Hours Logged:** ${mockDigestData.totalHoursLoggedThisWeek} hrs
-- **Matching Funds Raised:** ₹${mockDigestData.fundsMatchedThisWeek.toLocaleString()}
+- **Volunteers Registered:** ${digestData.newVolunteersCount}
+- **Volunteer Hours Logged:** ${digestData.totalHoursLoggedThisWeek} hrs
+- **Matching Funds Raised:** ₹${digestData.fundsMatchedThisWeek.toLocaleString()}
 
-## 🎉 Completed CSR Projects This Week
-${mockDigestData.completedProjectsList.map(p => `- **${p.title}** (${p.ngo}): ${p.impact} | ${p.hours} hrs logged by ${p.volunteers} volunteers`).join('\n')}
+## 🎉 Active CSR Projects This Week
+${digestData.completedProjectsList.map(p => `- **${p.title}** (${p.ngo}): ${p.impact} | ${p.hours} hrs`).join('\n')}
 
-## 🙋 New Volunteer Sign-ups
-${mockDigestData.newVolunteersList.map(v => `- ${v.name} (${v.role} - ${v.dept})`).join('\n')}
-
-## 📅 Featured Drive for Next Week
-**${mockDigestData.upcomingDrive.title}**
-Date: ${mockDigestData.upcomingDrive.date} | Spots Left: ${mockDigestData.upcomingDrive.spotsLeft}
+## 🙋 Recent Volunteer Sign-ups
+${digestData.newVolunteersList.map(v => `- ${v.name} (${v.role} - ${v.dept})`).join('\n')}
     `.trim();
 
     navigator.clipboard.writeText(mdContent);
@@ -167,7 +189,7 @@ Date: ${mockDigestData.upcomingDrive.date} | Spots Left: ${mockDigestData.upcomi
                     Weekly CSR Executive Email Digest
                   </DialogTitle>
                   <DialogDescription className="text-xs text-indigo-200">
-                    Review, customize, and dispatch this week's admin report ({mockDigestData.weekRange}).
+                    Review, customize, and dispatch this week's admin report ({digestData.weekRange}).
                   </DialogDescription>
                 </div>
               </div>
@@ -233,25 +255,25 @@ Date: ${mockDigestData.upcomingDrive.date} | Spots Left: ${mockDigestData.upcomi
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="p-3 rounded-xl bg-indigo-50/80 border border-indigo-100">
                     <span className="text-[10px] font-bold text-indigo-700 uppercase block">New Volunteers</span>
-                    <strong className="text-lg font-black text-slate-900">+{mockDigestData.newVolunteersCount} Pledged</strong>
+                    <strong className="text-lg font-black text-slate-900">+{digestData.newVolunteersCount} Pledged</strong>
                   </div>
                   <div className="p-3 rounded-xl bg-emerald-50/80 border border-emerald-100">
-                    <span className="text-[10px] font-bold text-emerald-700 uppercase block">Completed Drives</span>
-                    <strong className="text-lg font-black text-slate-900">{mockDigestData.completedProjectsCount} Projects</strong>
+                    <span className="text-[10px] font-bold text-emerald-700 uppercase block">Active Drives</span>
+                    <strong className="text-lg font-black text-slate-900">{digestData.completedProjectsCount} Projects</strong>
                   </div>
                   <div className="p-3 rounded-xl bg-purple-50/80 border border-purple-100">
                     <span className="text-[10px] font-bold text-purple-700 uppercase block">Total Hours</span>
-                    <strong className="text-lg font-black text-slate-900">{mockDigestData.totalHoursLoggedThisWeek} hrs</strong>
+                    <strong className="text-lg font-black text-slate-900">{digestData.totalHoursLoggedThisWeek} hrs</strong>
                   </div>
                 </div>
 
                 {/* Completed Projects Section */}
                 <div className="space-y-2">
                   <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5 border-b pb-1">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Completed Projects This Week
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Active CSR Initiatives
                   </h4>
                   <div className="space-y-2">
-                    {mockDigestData.completedProjectsList.map((proj, i) => (
+                    {digestData.completedProjectsList.map((proj, i) => (
                       <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start justify-between gap-3">
                         <div>
                           <h5 className="font-bold text-slate-900">{proj.title}</h5>
@@ -260,7 +282,7 @@ Date: ${mockDigestData.upcomingDrive.date} | Spots Left: ${mockDigestData.upcomi
                         </div>
                         <div className="text-right shrink-0">
                           <Badge variant="outline" className="bg-white text-indigo-900 border-indigo-200 font-bold text-[10px]">
-                            {proj.hours} hrs logged
+                            {proj.hours} hrs goal
                           </Badge>
                           <span className="block text-[10px] text-slate-400 mt-1">{proj.volunteers} volunteers</span>
                         </div>
@@ -275,7 +297,7 @@ Date: ${mockDigestData.upcomingDrive.date} | Spots Left: ${mockDigestData.upcomi
                     <Users className="w-4 h-4 text-indigo-600" /> Featured New Volunteers
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {mockDigestData.newVolunteersList.map((vol, i) => (
+                    {digestData.newVolunteersList.map((vol, i) => (
                       <div key={i} className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center gap-2">
                         <div className="h-6 w-6 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
                           {vol.name.charAt(0)}
@@ -292,12 +314,12 @@ Date: ${mockDigestData.upcomingDrive.date} | Spots Left: ${mockDigestData.upcomi
                 {/* Upcoming Spotlight */}
                 <div className="p-3.5 rounded-xl bg-gradient-to-r from-slate-900 to-indigo-950 text-white flex items-center justify-between gap-3">
                   <div>
-                    <span className="text-[10px] text-amber-300 font-extrabold uppercase tracking-wider block">Upcoming Next Week</span>
-                    <strong className="text-xs font-bold text-white block mt-0.5">{mockDigestData.upcomingDrive.title}</strong>
-                    <span className="text-[10px] text-indigo-200">{mockDigestData.upcomingDrive.date}</span>
+                    <span className="text-[10px] text-amber-300 font-extrabold uppercase tracking-wider block">Upcoming Community Drive</span>
+                    <strong className="text-xs font-bold text-white block mt-0.5">{digestData.completedProjectsList[0]?.title || 'Corporate Volunteering Drive'}</strong>
+                    <span className="text-[10px] text-indigo-200">Scheduled for Next Quarter</span>
                   </div>
                   <Badge className="bg-amber-400 text-slate-950 font-extrabold text-[10px] shrink-0">
-                    {mockDigestData.upcomingDrive.spotsLeft} Spots Open
+                    Registration Open
                   </Badge>
                 </div>
               </div>

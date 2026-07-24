@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ import {
   Building2, Crown, Zap, HeartHandshake
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/src/lib/firebase';
 
 export interface DepartmentMetric {
   id: string;
@@ -27,97 +29,95 @@ export interface DepartmentMetric {
   badge: string;
 }
 
-const INITIAL_DEPARTMENTS: DepartmentMetric[] = [
-  {
-    id: 'dept-1',
-    rank: 1,
-    name: 'Software Engineering & Tech',
-    headCount: 240,
-    activeVolunteers: 204,
-    totalHours: 1420,
-    totalDonations: 185000,
-    participationRate: 85,
-    topProject: 'Tech Skills Workshop for Youth',
-    departmentLead: 'Sarah Jenkins',
-    monthlyGrowth: '+24%',
-    badge: '🏆 CSR Champion Tech Lead',
-  },
-  {
-    id: 'dept-2',
-    rank: 2,
-    name: 'Product & User Experience',
-    headCount: 95,
-    activeVolunteers: 78,
-    totalHours: 890,
-    totalDonations: 120000,
-    participationRate: 82,
-    topProject: 'Senior Citizen Digital Literacy',
-    departmentLead: 'Rohan Mehta',
-    monthlyGrowth: '+18%',
-    badge: '🥈 Innovation Innovator',
-  },
-  {
-    id: 'dept-3',
-    rank: 3,
-    name: 'Operations & Logistics',
-    headCount: 180,
-    activeVolunteers: 135,
-    totalHours: 810,
-    totalDonations: 95000,
-    participationRate: 75,
-    topProject: 'Urban Riverbank Cleanliness Drive',
-    departmentLead: 'Emily Taylor',
-    monthlyGrowth: '+15%',
-    badge: '🥉 Grassroots Force',
-  },
-  {
-    id: 'dept-4',
-    rank: 4,
-    name: 'Sales & Business Growth',
-    headCount: 210,
-    activeVolunteers: 142,
-    totalHours: 680,
-    totalDonations: 210000,
-    participationRate: 68,
-    topProject: 'Community Greenery Drive',
-    departmentLead: 'Vikram Malhotra',
-    monthlyGrowth: '+30%',
-    badge: '⚡ Top Fundraising Team',
-  },
-  {
-    id: 'dept-5',
-    rank: 5,
-    name: 'Human Resources & Workplace',
-    headCount: 60,
-    activeVolunteers: 51,
-    totalHours: 540,
-    totalDonations: 65000,
-    participationRate: 85,
-    topProject: 'Blood Donation & Relief Camp',
-    departmentLead: 'Priya Patel',
-    monthlyGrowth: '+12%',
-    badge: '🌟 Highest Participation Rate',
-  },
-  {
-    id: 'dept-6',
-    rank: 6,
-    name: 'Finance, Legal & Compliance',
-    headCount: 85,
-    activeVolunteers: 48,
-    totalHours: 390,
-    totalDonations: 80000,
-    participationRate: 56,
-    topProject: 'Disaster Relief Food Distribution',
-    departmentLead: 'Amitabh Sen',
-    monthlyGrowth: '+8%',
-    badge: '🎯 Rising CSR Star',
-  },
-];
-
 export function DepartmentLeaderboard() {
-  const [departments, setDepartments] = useState<DepartmentMetric[]>(INITIAL_DEPARTMENTS);
+  const [departments, setDepartments] = useState<DepartmentMetric[]>([]);
   const [sortBy, setSortBy] = useState<'totalHours' | 'totalDonations' | 'participationRate'>('totalHours');
   const [selectedDept, setSelectedDept] = useState<DepartmentMetric | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDepartmentMetrics();
+  }, []);
+
+  const fetchDepartmentMetrics = async () => {
+    try {
+      setLoading(true);
+      // Fetch users, commitments, and payments to aggregate per department
+      const usersSnap = await getDocs(collection(db, 'users'));
+      const commitmentsSnap = await getDocs(collection(db, 'commitments'));
+      const paymentsSnap = await getDocs(collection(db, 'payments'));
+
+      const deptMap: Record<string, {
+        headCount: number;
+        volunteersSet: Set<string>;
+        totalHours: number;
+        totalDonations: number;
+        topProject: string;
+        maxHours: number;
+      }> = {};
+
+      usersSnap.docs.forEach(doc => {
+        const u = doc.data();
+        const dName = u.department || 'General Team';
+        if (!deptMap[dName]) {
+          deptMap[dName] = { headCount: 0, volunteersSet: new Set(), totalHours: 0, totalDonations: 0, topProject: 'General CSR Initiative', maxHours: 0 };
+        }
+        deptMap[dName].headCount += 1;
+      });
+
+      commitmentsSnap.docs.forEach(doc => {
+        const c = doc.data();
+        const dName = c.department || 'General Team';
+        if (!deptMap[dName]) {
+          deptMap[dName] = { headCount: 1, volunteersSet: new Set(), totalHours: 0, totalDonations: 0, topProject: c.projectName || 'CSR Activity', maxHours: 0 };
+        }
+        const hrs = Number(c.hoursPledged) || 0;
+        deptMap[dName].totalHours += hrs;
+        if (c.userId || c.userEmail) {
+          deptMap[dName].volunteersSet.add(c.userId || c.userEmail);
+        }
+        if (hrs > deptMap[dName].maxHours && c.projectName) {
+          deptMap[dName].maxHours = hrs;
+          deptMap[dName].topProject = c.projectName;
+        }
+      });
+
+      paymentsSnap.docs.forEach(doc => {
+        const p = doc.data();
+        const dName = p.department || 'General Team';
+        if (!deptMap[dName]) {
+          deptMap[dName] = { headCount: 1, volunteersSet: new Set(), totalHours: 0, totalDonations: 0, topProject: 'Philanthropy Drive', maxHours: 0 };
+        }
+        deptMap[dName].totalDonations += Number(p.amount) || 0;
+      });
+
+      const depts: DepartmentMetric[] = Object.keys(deptMap).map((dName, idx) => {
+        const d = deptMap[dName];
+        const activeVolunteers = d.volunteersSet.size || (d.totalHours > 0 ? 1 : 0);
+        const pRate = d.headCount > 0 ? Math.min(100, Math.round((activeVolunteers / d.headCount) * 100)) : 0;
+        return {
+          id: `dept-${idx}`,
+          rank: idx + 1,
+          name: dName,
+          headCount: d.headCount,
+          activeVolunteers,
+          totalHours: d.totalHours,
+          totalDonations: d.totalDonations,
+          participationRate: pRate,
+          topProject: d.topProject,
+          departmentLead: 'Team Lead',
+          monthlyGrowth: '+0%',
+          badge: idx === 0 ? '🏆 Top CSR Team' : '⭐ CSR Contributor'
+        };
+      });
+
+      setDepartments(depts);
+    } catch (e) {
+      console.error('Error fetching department metrics:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Re-sort department ranking based on chosen metric
   const sortedDepartments = [...departments].sort((a, b) => {

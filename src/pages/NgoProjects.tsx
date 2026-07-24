@@ -131,39 +131,6 @@ export function NgoProjects() {
         list = fallbackSnap.docs.map(d => ({ id: d.id, ...d.data() } as ProjectData));
       }
 
-      if (list.length === 0) {
-        list = [
-          {
-            id: 'ngo-proj-1',
-            charityId,
-            charityName: charityName || 'EcoBharat Foundation',
-            title: 'Ganges Riverbank Restoration Drive',
-            category: 'Environment & Sustainability',
-            sdgGoal: 'Goal 6: Clean Water & Sanitation',
-            targetHours: 500,
-            skillsRequired: ['Event Management', 'Environmental Science'],
-            status: 'approved',
-            description: 'Bi-weekly cleanup and water quality monitoring along 15km of Ganges riverfront.',
-            imageUrl: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
-            location: 'Varanasi, UP'
-          },
-          {
-            id: 'ngo-proj-2',
-            charityId,
-            charityName: charityName || 'EcoBharat Foundation',
-            title: 'Miyawaki Urban Afforestation',
-            category: 'Environment & Sustainability',
-            sdgGoal: 'Goal 15: Life on Land',
-            targetHours: 350,
-            skillsRequired: ['Logistics', 'Leadership'],
-            status: 'approved',
-            description: 'Planting high-density native saplings across public school grounds and parks.',
-            imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
-            location: 'Gurugram, Haryana'
-          }
-        ];
-      }
-
       setProjects(list);
     } catch (e) {
       console.error('Error fetching NGO projects:', e);

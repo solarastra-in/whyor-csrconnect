@@ -12,6 +12,8 @@ import {
   Layers, ArrowRight, ShieldCheck, ThumbsUp 
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { collection, getDocs, query, limit, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/src/lib/firebase';
 
 export interface ActivityItem {
   id: string;
@@ -31,83 +33,26 @@ export interface ActivityItem {
   };
 }
 
-const INITIAL_ACTIVITIES: ActivityItem[] = [
-  {
-    id: 'act-1',
-    type: 'milestone_completed',
-    title: '50 Volunteer Hours Milestone Reached',
-    description: 'Unlocked "Impact Legend" digital badge and 50h CSR certificate.',
-    actorName: 'Sarah Jenkins',
-    actorRole: 'Senior Software Engineer',
-    department: 'Engineering',
-    timestamp: '2 mins ago',
-    badgeTag: '50 Hrs Milestone',
-    meta: { hoursLogged: 50 }
-  },
-  {
-    id: 'act-2',
-    type: 'project_created',
-    title: 'New CSR Project Published: Coastal Mangrove Restoration',
-    description: 'Corporate sustainability drive aimed at planting 1,000 mangrove saplings.',
-    actorName: 'Ananya Sharma',
-    actorRole: 'CSR Program Lead',
-    department: 'Corporate Sustainability',
-    timestamp: '14 mins ago',
-    badgeTag: 'Environment & Earth',
-    meta: { location: 'East Coast Reserve' }
-  },
-  {
-    id: 'act-3',
-    type: 'employee_signup',
-    title: 'Pledged for Tech Skills Workshop for Youth',
-    description: 'Signed up as a Lead Technical Tutor for weekend coding sessions.',
-    actorName: 'David Chen',
-    actorRole: 'Product Designer',
-    department: 'Design & UX',
-    timestamp: '32 mins ago',
-    badgeTag: 'Youth Education',
-    meta: { projectName: 'Tech Skills Workshop for Youth' }
-  },
-  {
-    id: 'act-4',
-    type: 'milestone_completed',
-    title: 'Gold Tier CSR Contributor Level',
-    description: 'Crossed 100 total hours of logged volunteering across 8 drives.',
-    actorName: 'Priya Patel',
-    actorRole: 'HR Manager',
-    department: 'People & Culture',
-    timestamp: '1 hour ago',
-    badgeTag: '100 Hrs Gold Level',
-    meta: { hoursLogged: 100 }
-  },
-  {
-    id: 'act-5',
-    type: 'employee_signup',
-    title: 'Pledged for Senior Citizen Digital Literacy Program',
-    description: 'Joined team of 15 volunteers teaching elderly adults mobile safety.',
-    actorName: 'Marcus Vance',
-    actorRole: 'DevOps Lead',
-    department: 'Infrastructure',
-    timestamp: '2 hours ago',
-    badgeTag: 'Digital Inclusion',
-    meta: { projectName: 'Senior Citizen Literacy' }
-  },
-  {
-    id: 'act-6',
-    type: 'project_created',
-    title: 'New CSR Project Published: Blood Donation & Health Camp',
-    description: 'Organized in collaboration with Red Cross Society at HQ Campus.',
-    actorName: 'Rohan Mehta',
-    actorRole: 'Community Outreach Coordinator',
-    department: 'Employee Engagement',
-    timestamp: '3 hours ago',
-    badgeTag: 'Healthcare & Emergency',
-    meta: { location: 'HQ Auditorium' }
-  }
-];
+export interface ActivityItem {
+  id: string;
+  type: 'project_created' | 'employee_signup' | 'milestone_completed';
+  title: string;
+  description: string;
+  actorName: string;
+  actorRole?: string;
+  actorAvatar?: string;
+  department?: string;
+  timestamp: string;
+  badgeTag?: string;
+  meta?: {
+    location?: string;
+    hoursLogged?: number;
+    projectName?: string;
+  };
+}
 
 export function CompanyRecentActivityFeed() {
-  const [activities, setActivities] = useState<ActivityItem[]>(INITIAL_ACTIVITIES);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [filterType, setFilterType] = useState<string>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   
@@ -119,15 +64,79 @@ export function CompanyRecentActivityFeed() {
   const [customTitle, setCustomTitle] = useState('');
   const [customDesc, setCustomDesc] = useState('');
 
-  const handleRefresh = () => {
+  useEffect(() => {
+    fetchRealActivities();
+  }, []);
+
+  const fetchRealActivities = async () => {
     setIsRefreshing(true);
-    setTimeout(() => {
+    try {
+      const fetchedActs: ActivityItem[] = [];
+
+      // 1. Fetch commitments (employee_signup)
+      const commitmentsSnap = await getDocs(collection(db, 'commitments'));
+      commitmentsSnap.docs.forEach(doc => {
+        const d = doc.data();
+        fetchedActs.push({
+          id: doc.id,
+          type: 'employee_signup',
+          title: `Pledged for ${d.projectName || 'CSR Activity'}`,
+          description: `Pledged ${d.hoursPledged || 0} hours of volunteering.`,
+          actorName: d.userName || d.userEmail || 'Employee',
+          department: d.department || 'Corporate Member',
+          timestamp: 'Recently',
+          badgeTag: 'Volunteer Pledged',
+          meta: { hoursLogged: d.hoursPledged, projectName: d.projectName }
+        });
+      });
+
+      // 2. Fetch projects (project_created)
+      const projectsSnap = await getDocs(collection(db, 'projects'));
+      projectsSnap.docs.forEach(doc => {
+        const d = doc.data();
+        fetchedActs.push({
+          id: doc.id,
+          type: 'project_created',
+          title: `New Project: ${d.title || 'CSR Drive'}`,
+          description: d.description || 'Community initiative published.',
+          actorName: d.charityName || 'Partner NGO',
+          department: d.category || 'CSR Program',
+          timestamp: 'Recently',
+          badgeTag: d.category || 'New Project',
+          meta: { location: d.location }
+        });
+      });
+
+      // 3. Fetch custom logged activities from companyActivities
+      const customSnap = await getDocs(collection(db, 'companyActivities'));
+      customSnap.docs.forEach(doc => {
+        const d = doc.data();
+        fetchedActs.push({
+          id: doc.id,
+          type: d.type || 'project_created',
+          title: d.title,
+          description: d.description,
+          actorName: d.actorName,
+          department: d.department,
+          timestamp: 'Recently',
+          badgeTag: d.badgeTag || 'Logged Activity'
+        });
+      });
+
+      setActivities(fetchedActs);
+    } catch (e) {
+      console.error('Error fetching real activities:', e);
+    } finally {
       setIsRefreshing(false);
-      toast.success('Live activity feed updated with latest events');
-    }, 600);
+    }
   };
 
-  const handleAddActivitySubmit = (e: React.FormEvent) => {
+  const handleRefresh = () => {
+    fetchRealActivities();
+    toast.success('Live activity feed updated from database');
+  };
+
+  const handleAddActivitySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!actorName.trim() || !customTitle.trim()) {
       toast.error('Please complete required fields');
@@ -140,19 +149,23 @@ export function CompanyRecentActivityFeed() {
       milestone_completed: 'Milestone Unlocked'
     };
 
-    const newAct: ActivityItem = {
-      id: `act-${Date.now()}`,
+    const newActData = {
       type: activityType,
       title: customTitle.trim(),
       description: customDesc.trim() || 'Recorded via real-time company portal update.',
       actorName: actorName.trim(),
       department: department,
-      timestamp: 'Just now',
       badgeTag: badgeTags[activityType],
+      createdAt: serverTimestamp()
     };
 
-    setActivities(prev => [newAct, ...prev]);
-    toast.success('Live activity logged to feed!');
+    try {
+      const ref = await addDoc(collection(db, 'companyActivities'), newActData);
+      setActivities(prev => [{ id: ref.id, ...newActData, timestamp: 'Just now' } as any, ...prev]);
+      toast.success('Live activity logged to database!');
+    } catch (e) {
+      toast.error('Failed to save activity');
+    }
 
     // Reset
     setActorName('');
