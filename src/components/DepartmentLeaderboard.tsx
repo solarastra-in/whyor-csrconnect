@@ -1,3 +1,4 @@
+import { EmptyState } from '@/src/components/EmptyState';
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -129,7 +130,7 @@ export function DepartmentLeaderboard() {
 
   const totalCompanyHours = departments.reduce((acc, d) => acc + d.totalHours, 0);
   const totalCompanyDonations = departments.reduce((acc, d) => acc + d.totalDonations, 0);
-  const avgParticipation = Math.round(departments.reduce((acc, d) => acc + d.participationRate, 0) / departments.length);
+  const avgParticipation = departments.length > 0 ? Math.round(departments.reduce((acc, d) => acc + d.participationRate, 0) / departments.length) : 0;
 
   return (
     <Card className="border border-indigo-100 shadow-md bg-white overflow-hidden my-6">
@@ -211,9 +212,21 @@ export function DepartmentLeaderboard() {
 
       {/* Leaderboard Table / Card List */}
       <CardContent className="p-6 space-y-4">
-        {/* Top 3 Podium Highlights */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
-          {sortedDepartments.slice(0, 3).map((dept, index) => {
+        {sortedDepartments.length === 0 ? (
+          <EmptyState
+            icon={Trophy}
+            title="Department Leaderboard Uninitialized"
+            description="No department activity recorded in Firestore yet. Invite team members and tag employee contributions by department to start building real-time leaderboard rankings."
+            actionLabel="Invite Your Team"
+            actionHref="/company-dashboard"
+            secondaryActionLabel="Start First Campaign"
+            secondaryActionHref="/admin"
+          />
+        ) : (
+          <>
+            {/* Top 3 Podium Highlights */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+              {sortedDepartments.slice(0, 3).map((dept, index) => {
             const podiumStyles = [
               {
                 border: 'border-amber-300 bg-gradient-to-b from-amber-50/80 via-white to-amber-50/30',
@@ -347,7 +360,9 @@ export function DepartmentLeaderboard() {
             ))}
           </div>
         </div>
-      </CardContent>
+      </>
+    )}
+  </CardContent>
 
       {/* Department Detail Modal Dialog */}
       <Dialog open={!!selectedDept} onOpenChange={() => setSelectedDept(null)}>

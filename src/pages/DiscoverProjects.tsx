@@ -185,10 +185,9 @@ export function DiscoverProjects() {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const snap = await getDocs(collection(db, 'projects'));
-        const allFetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
-        // Strict verification gate: Only show projects that are approved
-        const fetched = allFetched.filter(p => !p.status || p.status === 'approved');
+        const projectsQuery = query(collection(db, 'projects'), where('status', '==', 'approved'));
+        const snap = await getDocs(projectsQuery);
+        const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
         
         if (fetched.length > 0) {
           setProjectsData(fetched);

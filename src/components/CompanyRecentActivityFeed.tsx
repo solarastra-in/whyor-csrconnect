@@ -1,3 +1,4 @@
+import { EmptyState } from '@/src/components/EmptyState';
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -276,92 +277,104 @@ export function CompanyRecentActivityFeed() {
       </CardHeader>
 
       <CardContent className="p-5">
-        <div className="space-y-3">
-          {filteredActivities.map((act) => {
-            // Style maps based on type
-            const typeConfig = {
-              project_created: {
-                icon: Building2,
-                color: 'text-emerald-600 bg-emerald-100 border-emerald-200',
-                badgeBg: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-                categoryLabel: 'New Project',
-              },
-              employee_signup: {
-                icon: UserPlus,
-                color: 'text-blue-600 bg-blue-100 border-blue-200',
-                badgeBg: 'bg-blue-50 text-blue-800 border-blue-200',
-                categoryLabel: 'Sign-up',
-              },
-              milestone_completed: {
-                icon: Trophy,
-                color: 'text-purple-600 bg-purple-100 border-purple-200',
-                badgeBg: 'bg-purple-50 text-purple-800 border-purple-200',
-                categoryLabel: 'Milestone',
-              },
-            }[act.type];
+        {filteredActivities.length === 0 ? (
+          <EmptyState
+            icon={Activity}
+            title="No Recent Activity Recorded"
+            description="No activity logs were found in the database. Invite team members to volunteer or start your first CSR campaign to generate real-time activity."
+            actionLabel="Start Your First Campaign"
+            actionHref="/admin"
+            secondaryActionLabel="Log Event Manually"
+            onSecondaryAction={() => setIsModalOpen(true)}
+          />
+        ) : (
+          <div className="space-y-3">
+            {filteredActivities.map((act) => {
+              // Style maps based on type
+              const typeConfig = {
+                project_created: {
+                  icon: Building2,
+                  color: 'text-emerald-600 bg-emerald-100 border-emerald-200',
+                  badgeBg: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+                  categoryLabel: 'New Project',
+                },
+                employee_signup: {
+                  icon: UserPlus,
+                  color: 'text-blue-600 bg-blue-100 border-blue-200',
+                  badgeBg: 'bg-blue-50 text-blue-800 border-blue-200',
+                  categoryLabel: 'Sign-up',
+                },
+                milestone_completed: {
+                  icon: Trophy,
+                  color: 'text-purple-600 bg-purple-100 border-purple-200',
+                  badgeBg: 'bg-purple-50 text-purple-800 border-purple-200',
+                  categoryLabel: 'Milestone',
+                },
+              }[act.type];
 
-            const IconComponent = typeConfig.icon;
+              const IconComponent = typeConfig.icon;
 
-            return (
-              <div
-                key={act.id}
-                className="p-4 rounded-xl border border-slate-200/80 hover:border-indigo-300 bg-slate-50/50 hover:bg-indigo-50/20 transition-all duration-200 flex items-start gap-3.5 group"
-              >
-                {/* Type Icon Badge */}
-                <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 font-bold border ${typeConfig.color} group-hover:scale-105 transition-transform`}>
-                  <IconComponent className="w-5 h-5" />
-                </div>
+              return (
+                <div
+                  key={act.id}
+                  className="p-4 rounded-xl border border-slate-200/80 hover:border-indigo-300 bg-slate-50/50 hover:bg-indigo-50/20 transition-all duration-200 flex items-start gap-3.5 group"
+                >
+                  {/* Type Icon Badge */}
+                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 font-bold border ${typeConfig.color} group-hover:scale-105 transition-transform`}>
+                    <IconComponent className="w-5 h-5" />
+                  </div>
 
-                {/* Main Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                        <Badge variant="outline" className={`text-[10px] font-bold px-2 py-0 ${typeConfig.badgeBg}`}>
-                          {typeConfig.categoryLabel}
-                        </Badge>
-                        {act.badgeTag && (
-                          <Badge variant="outline" className="text-[10px] bg-white text-slate-700 border-slate-200">
-                            {act.badgeTag}
+                  {/* Main Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                          <Badge variant="outline" className={`text-[10px] font-bold px-2 py-0 ${typeConfig.badgeBg}`}>
+                            {typeConfig.categoryLabel}
                           </Badge>
-                        )}
+                          {act.badgeTag && (
+                            <Badge variant="outline" className="text-[10px] bg-white text-slate-700 border-slate-200">
+                              {act.badgeTag}
+                            </Badge>
+                          )}
+                        </div>
+                        <h4 className="text-sm font-bold text-gray-900 group-hover:text-indigo-900 transition-colors">
+                          {act.title}
+                        </h4>
                       </div>
-                      <h4 className="text-sm font-bold text-gray-900 group-hover:text-indigo-900 transition-colors">
-                        {act.title}
-                      </h4>
+
+                      <span className="text-[11px] text-gray-400 font-medium shrink-0 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-gray-400" /> {act.timestamp}
+                      </span>
                     </div>
 
-                    <span className="text-[11px] text-gray-400 font-medium shrink-0 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-gray-400" /> {act.timestamp}
-                    </span>
-                  </div>
+                    <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                      {act.description}
+                    </p>
 
-                  <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                    {act.description}
-                  </p>
-
-                  <div className="flex items-center gap-3 text-[11px] text-gray-500 pt-2 mt-2 border-t border-slate-100">
-                    <span className="font-semibold text-slate-800 flex items-center gap-1">
-                      <div className="h-4 w-4 rounded-full bg-indigo-600 text-white text-[9px] font-bold flex items-center justify-center">
-                        {act.actorName.charAt(0)}
-                      </div>
-                      {act.actorName}
-                    </span>
-                    {act.department && (
-                      <span className="text-gray-400">· {act.department}</span>
-                    )}
-                    {act.meta?.location && (
-                      <span className="text-emerald-700 font-medium">📍 {act.meta.location}</span>
-                    )}
-                    {act.meta?.hoursLogged && (
-                      <span className="text-purple-700 font-medium">⚡ {act.meta.hoursLogged} hrs logged</span>
-                    )}
+                    <div className="flex items-center gap-3 text-[11px] text-gray-500 pt-2 mt-2 border-t border-slate-100">
+                      <span className="font-semibold text-slate-800 flex items-center gap-1">
+                        <div className="h-4 w-4 rounded-full bg-indigo-600 text-white text-[9px] font-bold flex items-center justify-center">
+                          {act.actorName.charAt(0)}
+                        </div>
+                        {act.actorName}
+                      </span>
+                      {act.department && (
+                        <span className="text-gray-400">· {act.department}</span>
+                      )}
+                      {act.meta?.location && (
+                        <span className="text-emerald-700 font-medium">📍 {act.meta.location}</span>
+                      )}
+                      {act.meta?.hoursLogged && (
+                        <span className="text-purple-700 font-medium">⚡ {act.meta.hoursLogged} hrs logged</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
 
       {/* Manual Activity Log Modal */}

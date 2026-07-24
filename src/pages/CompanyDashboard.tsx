@@ -1,10 +1,11 @@
+import { EmptyState } from '@/src/components/EmptyState';
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Area, AreaChart, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from 'recharts';
 import { 
   Users, IndianRupee, Target, Settings, Link as LinkIcon, ShieldCheck, 
   SlidersHorizontal, Eye, EyeOff, Bell, Trophy, Zap, Award, CheckCircle2, 
-  AlertCircle, PlusCircle, RotateCcw, TrendingUp, Sparkles, Clock 
+  AlertCircle, PlusCircle, RotateCcw, TrendingUp, Sparkles, Clock, Building2 
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -23,16 +24,6 @@ import { CompanyRecentActivityFeed } from '@/src/components/CompanyRecentActivit
 import { DepartmentLeaderboard } from '@/src/components/DepartmentLeaderboard';
 import { WeeklyEmailDigestGenerator } from '@/src/components/WeeklyEmailDigestGenerator';
 
-const mockEngagementData: any[] = [
-  { month: 'Jan', participation: 42, hours: 850 },
-  { month: 'Feb', participation: 48, hours: 1400 },
-  { month: 'Mar', participation: 55, hours: 2200 },
-  { month: 'Apr', participation: 58, hours: 3500 },
-  { month: 'May', participation: 62, hours: 4900 },
-  { month: 'Jun', participation: 65, hours: 6200 },
-  { month: 'Jul', participation: 68, hours: 7845 },
-];
-
 export function CompanyDashboard() {
   const [widgets, setWidgets] = useState({
     participation: true,
@@ -44,6 +35,13 @@ export function CompanyDashboard() {
   // Annual Volunteer Target State
   const [targetHours, setTargetHours] = useState<number>(10000);
   const [completedHours, setCompletedHours] = useState<number>(0);
+  const [participationRate, setParticipationRate] = useState<number>(0);
+  const [fundsMatched, setFundsMatched] = useState<number>(0);
+  const [activeCampaignsCount, setActiveCampaignsCount] = useState<number>(0);
+  const [pledgesCount, setPledgesCount] = useState<number>(0);
+  const [nominatedProjects, setNominatedProjects] = useState<any[]>([]);
+  const [engagementData, setEngagementData] = useState<any[]>([]);
+
   const [notifiedMilestones, setNotifiedMilestones] = useState<{ [key: number]: boolean }>({
     50: false,
     75: false,
@@ -52,18 +50,70 @@ export function CompanyDashboard() {
 
   const prevHoursRef = useRef<number>(completedHours);
 
-  // Fetch real volunteer commitments for company to calculate total hours
+  // Fetch real volunteer commitments and company metrics from Firestore
   useEffect(() => {
-    const fetchCompanyHours = async () => {
+    const fetchCompanyDashboardMetrics = async () => {
       try {
-        const snap = await getDocs(collection(db, 'commitments'));
-        const total = snap.docs.reduce((sum, doc) => sum + (Number(doc.data().hoursPledged) || 0), 0);
-        setCompletedHours(total);
+        // 1. Commitments (Volunteer Hours & Pledges)
+        const commitmentsSnap = await getDocs(collection(db, 'commitments'));
+        const totalHrs = commitmentsSnap.docs.reduce((sum, doc) => sum + (Number(doc.data().hoursPledged) || 0), 0);
+        setCompletedHours(totalHrs);
+        setPledgesCount(commitmentsSnap.docs.length);
+
+        const volunteerUsers = new Set(
+          commitmentsSnap.docs.map(doc => doc.data().userId || doc.data().userEmail).filter(Boolean)
+        );
+
+        // 2. Users (Workforce size)
+        const usersSnap = await getDocs(collection(db, 'users'));
+        const totalUsers = usersSnap.docs.length;
+        if (totalUsers > 0) {
+          setParticipationRate(Math.min(100, Math.round((volunteerUsers.size / totalUsers) * 100)));
+        } else {
+          setParticipationRate(0);
+        }
+
+        // 3. Payments (Matched Funds)
+        const paymentsSnap = await getDocs(collection(db, 'payments'));
+        const matched = paymentsSnap.docs.reduce((sum, doc) => {
+          const d = doc.data();
+          return sum + (Number(d.matchedAmount) || Number(d.amount) || 0);
+        }, 0);
+        setFundsMatched(matched);
+
+        // 4. Projects (Active Campaigns & Nominated Projects)
+        const projectsSnap = await getDocs(collection(db, 'projects'));
+        let activeCount = 0;
+        const nominated: any[] = [];
+
+        projectsSnap.docs.forEach(doc => {
+          const p = doc.data();
+          if (p.status === 'approved') {
+            activeCount++;
+          }
+          if (p.nominatedBy || p.isNominated || p.status === 'pending_approval' || p.status === 'pending') {
+            nominated.push({ id: doc.id, ...p });
+          }
+        });
+
+        setActiveCampaignsCount(activeCount);
+        setNominatedProjects(nominated);
+
+        // Aggregate monthly engagement from payments/commitments if available
+        if (paymentsSnap.docs.length > 0 || commitmentsSnap.docs.length > 0) {
+          setEngagementData([
+            { month: 'Current', participation: participationRate, hours: totalHrs }
+          ]);
+        } else {
+          setEngagementData([]);
+        }
+
       } catch (e) {
-        console.error('Error fetching company volunteer hours:', e);
+        console.error('Error fetching company dashboard metrics:', e);
       }
     };
-    fetchCompanyHours();
+
+    fetchCompanyDashboardMetrics();
   }, []);
 
   // Milestone Toast Trigger logic on target progress changes (50%, 75%, 100%)
@@ -214,9 +264,9 @@ export function CompanyDashboard() {
               <Users className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">68%</div>
-              <p className="text-xs text-green-600 flex items-center mt-1">
-                +12% from last quarter
+              <div className="text-2xl font-bold">{participationRate}%</div>
+              <p className="text-xs text-gray-500 flex items-center mt-1">
+                {participationRate > 0 ? 'Workforce active in CSR' : 'No active volunteers yet'}
               </p>
             </CardContent>
           </Card>
@@ -228,9 +278,9 @@ export function CompanyDashboard() {
               <IndianRupee className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₹12.4L</div>
+              <div className="text-2xl font-bold">₹{fundsMatched.toLocaleString('en-IN')}</div>
               <p className="text-xs text-gray-500 mt-1">
-                of ₹50L annual budget
+                {fundsMatched > 0 ? 'Total matched contributions' : 'No matched funds yet'}
               </p>
             </CardContent>
           </Card>
@@ -258,9 +308,9 @@ export function CompanyDashboard() {
               <Target className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">3</div>
+              <div className="text-2xl font-bold">{activeCampaignsCount}</div>
               <p className="text-xs text-gray-500 mt-1">
-                2 ending this month
+                {activeCampaignsCount > 0 ? 'Approved active projects' : 'No active campaigns'}
               </p>
             </CardContent>
           </Card>
@@ -471,26 +521,26 @@ export function CompanyDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-between">
                   <div>
-                    <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">Newly Created Drives</span>
-                    <span className="text-xl font-black text-slate-900">+4 Drives This Week</span>
+                    <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">Active CSR Drives</span>
+                    <span className="text-xl font-black text-slate-900">{activeCampaignsCount} Active Projects</span>
                   </div>
-                  <Badge className="bg-emerald-600 text-white text-[10px]">Active</Badge>
+                  <Badge className="bg-emerald-600 text-white text-[10px]">{activeCampaignsCount > 0 ? 'Live' : 'Inactive'}</Badge>
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-between">
                   <div>
-                    <span className="text-[11px] font-bold text-blue-800 uppercase tracking-wider block">Recent Employee Sign-Ups</span>
-                    <span className="text-xl font-black text-slate-900">128 Volunteer Pledges</span>
+                    <span className="text-[11px] font-bold text-blue-800 uppercase tracking-wider block">Employee Sign-Ups</span>
+                    <span className="text-xl font-black text-slate-900">{pledgesCount} Volunteer Pledges</span>
                   </div>
-                  <Badge className="bg-blue-600 text-white text-[10px]">+18 Today</Badge>
+                  <Badge className="bg-blue-600 text-white text-[10px]">{pledgesCount > 0 ? 'Active' : 'No Pledges'}</Badge>
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-between">
                   <div>
-                    <span className="text-[11px] font-bold text-purple-800 uppercase tracking-wider block">Milestones Unlocked</span>
-                    <span className="text-xl font-black text-slate-900">42 Badges Earned</span>
+                    <span className="text-[11px] font-bold text-purple-800 uppercase tracking-wider block">Completed Hours</span>
+                    <span className="text-xl font-black text-slate-900">{completedHours} Hrs Logged</span>
                   </div>
-                  <Badge className="bg-purple-600 text-white text-[10px]">High Impact</Badge>
+                  <Badge className="bg-purple-600 text-white text-[10px]">Total Hours</Badge>
                 </div>
               </div>
             </CardContent>
@@ -504,53 +554,42 @@ export function CompanyDashboard() {
               <CardDescription>Review and approve projects nominated by employees before they are sent to the Platform Admin for final validation.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="p-4 border rounded-lg bg-gray-50 flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Local Community Clean-up</h3>
-                    <p className="text-sm text-gray-500">Nominated by: John Doe (john.doe@company.com)</p>
-                    <p className="text-xs text-gray-400 mt-1">Submitted: 2 days ago</p>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button 
-                      variant="outline" 
-                      className="text-red-600 border-red-200 hover:bg-red-50"
-                      onClick={() => toast.error('Nominated project rejected.')}
-                    >
-                      Reject
-                    </Button>
-                    <Button 
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() => toast.success('Project approved and submitted to Portal Admin!')}
-                    >
-                      Approve & Send to Portal Admin
-                    </Button>
-                  </div>
+              {nominatedProjects.length === 0 ? (
+                <EmptyState
+                  icon={Building2}
+                  title="No Pending Project Nominations"
+                  description="Employees can nominate local non-profit partners or CSR initiatives for corporate sponsorship. Invite your team to submit projects."
+                  actionLabel="Invite Your Team"
+                  actionHref="/company-dashboard"
+                />
+              ) : (
+                <div className="space-y-4">
+                  {nominatedProjects.map((project) => (
+                    <div key={project.id} className="p-4 border rounded-lg bg-gray-50 flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{project.title || project.name || 'Nominated Drive'}</h3>
+                        <p className="text-sm text-gray-500">Nominated by: {project.nominatedBy || 'Employee'}</p>
+                        <p className="text-xs text-gray-400 mt-1">Status: {project.status || 'Pending Review'}</p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          className="text-red-600 border-red-200 hover:bg-red-50"
+                          onClick={() => toast.error('Nominated project rejected.')}
+                        >
+                          Reject
+                        </Button>
+                        <Button 
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => toast.success('Project approved and submitted to Portal Admin!')}
+                        >
+                          Approve & Send to Portal Admin
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                
-                <div className="p-4 border rounded-lg bg-gray-50 flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Tech for Kids Workshop</h3>
-                    <p className="text-sm text-gray-500">Nominated by: Sarah Smith (sarah.s@company.com)</p>
-                    <p className="text-xs text-gray-400 mt-1">Submitted: 5 days ago</p>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button 
-                      variant="outline" 
-                      className="text-red-600 border-red-200 hover:bg-red-50"
-                      onClick={() => toast.error('Nominated project rejected.')}
-                    >
-                      Reject
-                    </Button>
-                    <Button 
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() => toast.success('Project approved and submitted to Portal Admin!')}
-                    >
-                      Approve & Send to Portal Admin
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -562,22 +601,32 @@ export function CompanyDashboard() {
               <CardDescription>Percentage of workforce actively donating or volunteering</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={mockEngagementData}>
-                    <XAxis dataKey="month" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis
-                      stroke="#888888"
-                      fontSize={12}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(value) => `${value}%`}
-                    />
-                    <RechartsTooltip />
-                    <Area type="monotone" dataKey="participation" stroke="#4f46e5" fill="#6366f1" fillOpacity={0.2} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
+              {engagementData.length === 0 ? (
+                <EmptyState
+                  icon={TrendingUp}
+                  title="No Engagement Trends Recorded"
+                  description="Monthly volunteer and donation trends will appear as employees actively engage with CSR initiatives. Start your first campaign to boost participation."
+                  actionLabel="Start Your First Campaign"
+                  actionHref="/admin"
+                />
+              ) : (
+                <div className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={engagementData}>
+                      <XAxis dataKey="month" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                      <YAxis
+                        stroke="#888888"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(value) => `${value}%`}
+                      />
+                      <RechartsTooltip />
+                      <Area type="monotone" dataKey="participation" stroke="#4f46e5" fill="#6366f1" fillOpacity={0.2} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -595,10 +644,10 @@ export function CompanyDashboard() {
             <CardContent className="space-y-4">
               <div className="p-4 border rounded-lg flex items-center justify-between bg-gray-50">
                 <div className="flex items-center space-x-4">
-                  <ShieldCheck className="h-8 w-8 text-green-600" />
+                  <ShieldCheck className="h-8 w-8 text-indigo-600" />
                   <div>
-                    <h3 className="font-semibold">Azure Active Directory</h3>
-                    <p className="text-sm text-gray-500">Status: <Badge variant="secondary" className="bg-green-100 text-green-800">Connected</Badge></p>
+                    <h3 className="font-semibold">Enterprise Identity Provider</h3>
+                    <p className="text-sm text-gray-500">Status: <Badge variant="secondary" className="bg-blue-100 text-blue-800">Ready to Configure</Badge></p>
                   </div>
                 </div>
                 <button 
@@ -611,7 +660,7 @@ export function CompanyDashboard() {
               <div className="p-4 border rounded-lg border-dashed text-center">
                 <LinkIcon className="h-6 w-6 text-gray-400 mx-auto mb-2" />
                 <h3 className="font-semibold text-sm">Add New Identity Provider</h3>
-                <p className="text-xs text-gray-500 mt-1">Support for Okta, Google Workspace, and generic SAML 2.0</p>
+                <p className="text-xs text-gray-500 mt-1">Support for Okta, Azure AD, Google Workspace, and generic SAML 2.0</p>
               </div>
             </CardContent>
           </Card>
@@ -638,12 +687,12 @@ export function CompanyDashboard() {
                   </div>
                 </div>
                 <div className="border-t pt-4">
-                  <h4 className="font-semibold mb-2">Special Campaigns</h4>
-                  <div className="p-3 bg-blue-50 border border-blue-100 rounded text-sm text-blue-800 flex justify-between items-center">
-                    <div>
-                      <span className="font-bold">2:1 Match</span> - Disaster Relief Fund (Kerala)
-                    </div>
-                    <Badge>Active</Badge>
+                  <h4 className="font-semibold mb-2">Special Campaign Matching Rules</h4>
+                  <div className="p-4 border border-dashed border-gray-200 rounded-lg text-center text-gray-500">
+                    <p className="text-xs">No active special campaign boost rules configured.</p>
+                    <Button size="sm" variant="outline" className="mt-2 text-xs" onClick={() => toast.info('Configure campaign boost rules')}>
+                      + Add Special Match Rule
+                    </Button>
                   </div>
                 </div>
               </div>

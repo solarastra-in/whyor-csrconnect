@@ -105,15 +105,28 @@ export function Dashboard() {
       setPendingProjects(pendingList);
 
       // Top Projects
-      const approvedList = allProjects.filter((p: any) => p.status === 'approved' || !p.status);
+      const approvedList = allProjects.filter((p: any) => p.status === 'approved');
       const sorted = approvedList.sort((a: any, b: any) => (b.targetHours || 0) - (a.targetHours || 0)).slice(0, 3);
-      setTopProjects(sorted.map((p: any) => ({
-        id: p.id,
-        name: p.title || 'CSR Initiative',
-        charity: p.charityName || 'Partner NGO',
-        funds: `₹${((p.targetHours || 50) * 1000).toLocaleString()}`,
-        progress: Math.min(100, Math.max(10, (p.volunteersCount || 0) * 10))
-      })));
+      setTopProjects(sorted.map((p: any) => {
+        const raised = Number(p.raisedAmount) || 0;
+        const target = Number(p.targetAmount) || (Number(p.targetHours) ? Number(p.targetHours) * 1000 : 0);
+        const progressVal = target > 0 ? Math.min(100, Math.round((raised / target) * 100)) : (p.volunteersCount ? Math.min(100, p.volunteersCount * 10) : 0);
+        
+        let fundsDisplay = '₹0';
+        if (raised > 0) {
+          fundsDisplay = `₹${raised.toLocaleString('en-IN')}`;
+        } else if (target > 0) {
+          fundsDisplay = `₹${target.toLocaleString('en-IN')} Target`;
+        }
+
+        return {
+          id: p.id,
+          name: p.title || p.name || 'CSR Initiative',
+          charity: p.charityName || 'Partner NGO',
+          funds: fundsDisplay,
+          progress: progressVal
+        };
+      }));
 
     } catch (e) {
       console.error('Error fetching dashboard data:', e);
@@ -161,8 +174,8 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalFunds}</div>
-            <p className="text-xs text-green-600 flex items-center mt-1">
-              +18% growth this year
+            <p className="text-xs text-gray-500 mt-1">
+              {stats.totalFunds === '₹0' ? 'No contributions logged yet' : 'Total contributions logged'}
             </p>
           </CardContent>
         </Card>
@@ -223,9 +236,9 @@ export function Dashboard() {
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
-                    tickFormatter={(value) => `₹${value}k`}
+                    tickFormatter={(value) => value >= 1000 ? `₹${value / 1000}k` : `₹${value}`}
                   />
-                  <Tooltip />
+                  <Tooltip formatter={(value: any) => [`₹${Number(value).toLocaleString('en-IN')}`, 'Donations']} />
                   <Area type="monotone" dataKey="donations" stroke="#2563eb" fill="#3b82f6" fillOpacity={0.2} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -239,25 +252,31 @@ export function Dashboard() {
             <CardDescription>Highest funded initiatives</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              {topProjects.map((project) => (
-                <div key={project.id} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium leading-none">{project.name}</p>
-                      <p className="text-xs text-gray-500">{project.charity}</p>
+            {topProjects.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p className="text-sm">No approved projects yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {topProjects.map((project) => (
+                  <div key={project.id} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium leading-none">{project.name}</p>
+                        <p className="text-xs text-gray-500">{project.charity}</p>
+                      </div>
+                      <div className="text-sm font-medium">{project.funds}</div>
                     </div>
-                    <div className="text-sm font-medium">{project.funds}</div>
+                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-blue-600 rounded-full" 
+                        style={{ width: `${project.progress}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-blue-600 rounded-full" 
-                      style={{ width: `${project.progress}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
