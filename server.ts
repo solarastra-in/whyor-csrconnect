@@ -268,6 +268,69 @@ async function startServer() {
     }
   });
 
+  // AI Automated Tag Generation Route
+  app.post('/api/ai/generate-tags', verifyAuth, aiRateLimiter, async (req, res) => {
+    try {
+      const { title, description, category, sdgGoal, skills } = req.body;
+      const apiKey = process.env.GEMINI_API_KEY;
+      
+      if (!apiKey) {
+        // Fallback heuristic tags if API key is not set
+        const defaultTags = Array.from(new Set([
+          category || 'CSR Project',
+          sdgGoal ? sdgGoal.split('-')[0].trim() : 'Community Impact',
+          'Volunteer Opportunity',
+          'Social Impact'
+        ])).slice(0, 5);
+        return res.json({ tags: defaultTags });
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+      const prompt = `You are an expert CSR taxonomy system. Analyze the following volunteer project details and return ONLY a JSON array of 4 to 6 concise, highly relevant, standardized search & discovery tags (strings). Do not include any markdown formatting, backticks, or extra commentary outside the raw JSON array.
+
+Project Title: ${title || 'N/A'}
+Category: ${category || 'N/A'}
+SDG Target: ${sdgGoal || 'N/A'}
+Required Skills: ${skills || 'N/A'}
+Description: ${description || 'N/A'}`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+      });
+
+      let rawText = response.text?.trim() || '[]';
+      // Clean up potential markdown wrapper ```json ... ```
+      rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+      let tags: string[] = [];
+      try {
+        tags = JSON.parse(rawText);
+        if (!Array.isArray(tags)) tags = [];
+      } catch (e) {
+        tags = [category || 'CSR Initiative', 'Community Impact', 'Social Action'];
+      }
+
+      // Fallback clean-up
+      tags = tags.map(t => typeof t === 'string' ? t.trim() : '').filter(Boolean).slice(0, 6);
+      if (tags.length === 0) {
+        tags = ['Community Impact', category || 'CSR Initiative', 'Volunteer Drive'];
+      }
+
+      res.json({ tags });
+    } catch (error: any) {
+      console.error('AI tag generation error:', error);
+      // Fallback tags on error
+      const fallbackTags = [
+        req.body?.category || 'CSR Initiative',
+        'Community Impact',
+        'Volunteer Drive',
+        'Social Good'
+      ];
+      res.json({ tags: fallbackTags });
+    }
+  });
+
   // Automated Notification System Route
   app.post('/api/cron/deadline-reminders', verifyAuth, async (req, res) => {
     try {

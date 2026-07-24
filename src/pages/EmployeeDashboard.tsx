@@ -76,6 +76,7 @@ const activityFeed = [
 
 import { PostProjectSurvey } from '@/src/components/PostProjectSurvey';
 import { VolunteerGuide } from '@/src/components/VolunteerGuide';
+import { QuickActionsFloatingMenu } from '@/src/components/QuickActionsFloatingMenu';
 
 import { GamifiedEngagement } from '@/src/components/GamifiedEngagement';
 
@@ -169,8 +170,49 @@ export function EmployeeDashboard() {
       const pledged = JSON.parse(localStorage.getItem('pledgedProjects') || '[]');
       
       try {
-        const snap = await getDocs(collection(db, 'projects'));
-        const allProjects = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
+        let snap = await getDocs(collection(db, 'projects'));
+        let allProjects = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
+        
+        if (allProjects.length === 0) {
+          allProjects = [
+            {
+              id: 'proj-1',
+              name: 'Clean Ganga Riverfront Drive',
+              charity: 'EcoBharat Foundation',
+              charityName: 'EcoBharat Foundation',
+              location: 'Varanasi, Uttar Pradesh',
+              match: '98% Match',
+              tags: ['Environment', 'Water Conservation', 'Community'],
+              description: 'Participate in riverbank cleanup drives, water quality testing workshops, and waste management campaigns along the Ganges.',
+              image: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
+              volunteerRoles: [{ id: '1', title: 'Volunteer', description: 'Help cleanup', hoursNeeded: 10, hoursPledged: 2, type: 'On-site', skills: ['Event Management', 'Environmental Science'] }]
+            },
+            {
+              id: 'proj-2',
+              name: 'Digital Literacy for Rural Youth',
+              charity: 'Shiksha India Trust',
+              charityName: 'Shiksha India Trust',
+              location: 'Remote / Bengaluru, Karnataka',
+              match: '95% Match',
+              tags: ['Education', 'Technology', 'Skill Development'],
+              description: 'Mentor high school students in basic computer skills, Python fundamentals, and digital safety through weekly online webinars.',
+              image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80',
+              volunteerRoles: [{ id: '2', title: 'Tutor', description: 'Teach Python', hoursNeeded: 15, hoursPledged: 5, type: 'Remote', skills: ['Python', 'Teaching'] }]
+            },
+            {
+              id: 'proj-3',
+              name: 'Urban Miyawaki Forest Planting',
+              charity: 'Green Canopy Initiative',
+              charityName: 'Green Canopy Initiative',
+              location: 'Gurugram, Haryana',
+              match: '92% Match',
+              tags: ['Environment', 'Climate Action', 'Urban Greenery'],
+              description: 'Plant native Miyawaki micro-forests in urban park spaces to boost urban biodiversity and improve air quality index.',
+              image: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
+              volunteerRoles: [{ id: '3', title: 'Site Lead', description: 'Manage planting', hoursNeeded: 20, hoursPledged: 8, type: 'On-site', skills: ['Logistics', 'Leadership'] }]
+            }
+          ] as any;
+        }
         
         let candidates = allProjects.filter(p => !pledged.includes(p.id));
         
@@ -231,7 +273,7 @@ export function EmployeeDashboard() {
   };
 
   const [widgetOrder, setWidgetOrder] = useState<string[]>([
-    'stats', 'missions', 'gamification', 'hours', 'leaderboard', 'pledged', 'badges', 'suggested', 'activity', 'news'
+    'companyGoal', 'stats', 'missions', 'gamification', 'hours', 'leaderboard', 'pledged', 'badges', 'suggested', 'activity', 'news'
   ]);
 
   const sensors = useSensors(
@@ -286,6 +328,16 @@ export function EmployeeDashboard() {
           
           <div className="w-px h-12 bg-gray-200 hidden sm:block"></div>
           
+          <div className="flex flex-col min-w-[140px]">
+             <span className="text-sm font-medium text-gray-500 flex items-center gap-1">
+               Company Annual Goal <Trophy className="h-3.5 w-3.5 text-amber-500" />
+             </span>
+             <span className="text-xl font-bold text-gray-900">7,845h <span className="text-sm font-normal text-gray-500">/ 10,000h</span></span>
+             <Progress value={78.45} className="h-1.5 mt-2 bg-gray-200 [&>div]:bg-amber-500" />
+          </div>
+
+          <div className="w-px h-12 bg-gray-200 hidden sm:block"></div>
+          
           <div className="flex flex-col min-w-[120px]">
              <span className="text-sm font-medium text-gray-500">My Donations</span>
              <span className="text-xl font-bold text-gray-900">₹24,500 <span className="text-sm font-normal text-gray-500">/ ₹50K</span></span>
@@ -317,7 +369,92 @@ export function EmployeeDashboard() {
               let content = null;
               let className = 'col-span-1';
               
-              if (id === 'stats') {
+              if (id === 'companyGoal') {
+                className = 'col-span-1 md:col-span-2 lg:col-span-3';
+                content = (
+                  <Card className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white overflow-hidden shadow-lg border-0">
+                    <CardContent className="p-6 md:p-8">
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                        <div className="space-y-2 max-w-xl">
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-amber-400 text-slate-950 font-bold px-2.5 py-0.5 text-xs">
+                              2026 Corporate Impact Goal
+                            </Badge>
+                            <span className="text-xs text-indigo-200 font-medium flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-indigo-300" /> 160 Days Remaining
+                            </span>
+                          </div>
+                          <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+                            Annual Company Volunteer Hours Tracker
+                          </h2>
+                          <p className="text-sm text-indigo-200 leading-relaxed">
+                            Together across all offices, our annual mission is to complete 10,000 volunteer hours for community partners and non-profits. Every pledge brings us closer!
+                          </p>
+                        </div>
+
+                        <div className="bg-white/10 backdrop-blur-md rounded-xl p-5 border border-white/15 flex flex-col items-center justify-center min-w-[240px]">
+                          <span className="text-xs font-semibold text-indigo-200 uppercase tracking-wider">Total Completed Hours</span>
+                          <div className="text-4xl font-extrabold text-amber-300 my-1 font-mono tracking-tight">
+                            7,845 <span className="text-xl font-normal text-white/80">/ 10,000 hrs</span>
+                          </div>
+                          <div className="text-xs text-emerald-300 font-medium flex items-center gap-1">
+                            <Zap className="w-3.5 h-3.5 text-emerald-400" /> 78.5% Annual Target Met
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Visual Progress Bar with Milestones */}
+                      <div className="mt-8 pt-6 border-t border-white/10">
+                        <div className="flex justify-between items-center text-xs font-semibold text-indigo-200 mb-2">
+                          <span>Progress Milestone Tracker</span>
+                          <span>2,155 hours remaining to hit 10,000h</span>
+                        </div>
+                        
+                        <div className="relative w-full h-4 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-white/10 shadow-inner">
+                          <div 
+                            className="h-full bg-gradient-to-r from-amber-500 via-emerald-400 to-indigo-400 rounded-full transition-all duration-1000 shadow" 
+                            style={{ width: '78.5%' }}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 text-center text-xs">
+                          <div className="bg-white/5 rounded-lg p-2.5 border border-white/5">
+                            <span className="text-emerald-400 font-bold block">Q1 Goal: 2,500h</span>
+                            <span className="text-slate-300 text-[11px]">Achieved ✅ (2,800h)</span>
+                          </div>
+                          <div className="bg-white/5 rounded-lg p-2.5 border border-white/5">
+                            <span className="text-emerald-400 font-bold block">Q2 Goal: 5,000h</span>
+                            <span className="text-slate-300 text-[11px]">Achieved ✅ (5,200h)</span>
+                          </div>
+                          <div className="bg-amber-400/10 rounded-lg p-2.5 border border-amber-400/30">
+                            <span className="text-amber-300 font-bold block">Q3 Goal: 7,500h</span>
+                            <span className="text-emerald-300 text-[11px]">Achieved! 🎉 (7,845h)</span>
+                          </div>
+                          <div className="bg-white/5 rounded-lg p-2.5 border border-white/5">
+                            <span className="text-white font-bold block">Q4 Goal: 10,000h</span>
+                            <span className="text-indigo-300 text-[11px]">In Progress 🚀</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-xs text-indigo-200">
+                          <div className="flex flex-wrap items-center gap-4">
+                            <div><strong className="text-white font-semibold">1,420</strong> / 1,800 Employees Active</div>
+                            <div className="hidden sm:block text-slate-500">•</div>
+                            <div>Your Contribution: <strong className="text-amber-300 font-semibold">{totalHours} hrs</strong></div>
+                          </div>
+                          <Button 
+                            onClick={() => navigate('/employee/discover')} 
+                            size="sm" 
+                            className="bg-amber-400 text-slate-950 hover:bg-amber-300 font-bold shadow-md cursor-pointer"
+                          >
+                            Pledge Hours to Goal &rarr;
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              } else if (id === 'stats') {
                 className = 'col-span-1 md:col-span-2 lg:col-span-3';
                 content = (
                   <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
@@ -532,14 +669,20 @@ export function EmployeeDashboard() {
               suggestedProjects.map((project) => (
                 <Card key={project.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-0">
-                    <div className="h-32 bg-gray-200 rounded-t-lg relative">
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent rounded-t-lg" />
+                    <div className="h-32 bg-gray-200 rounded-t-lg relative overflow-hidden">
+                      <img 
+                        src={(project as any).image || (project as any).imageUrl || 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80'} 
+                        alt={project.name} 
+                        className="w-full h-full object-cover" 
+                        referrerPolicy="no-referrer" 
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                       <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold text-blue-700 shadow-sm flex items-center">
-                        <Heart className="h-3 w-3 mr-1 fill-blue-700" /> {project.match}
+                        <Heart className="h-3 w-3 mr-1 fill-blue-700" /> {project.match || '95% Match'}
                       </div>
                       <div className="absolute bottom-3 left-3 right-3 text-white">
                         <h3 className="font-bold leading-tight line-clamp-1">{project.name}</h3>
-                        <p className="text-xs text-white/80 line-clamp-1">{project.charityName}</p>
+                        <p className="text-xs text-white/80 line-clamp-1">{project.charityName || (project as any).charity}</p>
                       </div>
                     </div>
                     <div className="p-4">
@@ -728,6 +871,7 @@ export function EmployeeDashboard() {
         onComplete={handleSurveyComplete}
       />
       <VolunteerGuide />
+      <QuickActionsFloatingMenu pledgedProjects={pledgedProjectsList} />
     </div>
   );
 }

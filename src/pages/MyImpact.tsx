@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, Award, Star, TrendingUp, Trophy, Target, ArrowUpRight, Heart, Share2, MessageSquare, Send, IndianRupee, Medal, MessageSquareQuote } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { toast } from 'sonner';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useVolunteer } from '@/src/contexts/VolunteerContext';
 import { collection, getDocs, doc, setDoc, addDoc, query, where, orderBy } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { PersonalCSRGoal } from '@/src/components/PersonalCSRGoal';
+import { BadgesAndMilestonesSection } from '@/src/components/BadgesAndMilestonesSection';
 import { EmployeeGamificationBadges } from '@/src/components/EmployeeGamificationBadges';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,6 +22,15 @@ const donationHistory = [
   { id: 1, date: '2024-08-15', charity: 'Jal Foundation', project: 'Clean Ganga', amount: 5000, match: 5000, status: 'Completed' },
   { id: 2, date: '2024-07-22', charity: 'Vidya Trust', project: 'Digital Skills', amount: 3000, match: 3000, status: 'Completed' },
   { id: 3, date: '2024-06-10', charity: 'Green Future', project: 'Tree Plantation', amount: 2000, match: 2000, status: 'Completed' },
+];
+
+const monthlyHoursData = [
+  { month: 'Feb 2026', hours: 4, companyAvg: 3 },
+  { month: 'Mar 2026', hours: 6, companyAvg: 4 },
+  { month: 'Apr 2026', hours: 8, companyAvg: 5 },
+  { month: 'May 2026', hours: 5, companyAvg: 5 },
+  { month: 'Jun 2026', hours: 10, companyAvg: 6 },
+  { month: 'Jul 2026', hours: 12, companyAvg: 7 },
 ];
 
 const initialTestimonials = [
@@ -140,6 +150,115 @@ This is a computer-generated receipt.
 
       <PersonalCSRGoal currentHours={totalHours} currentDonations={10000} />
       
+      {/* 6-Month Volunteer Hours Progression Trend Chart */}
+      <Card className="border-indigo-100 shadow-sm overflow-hidden">
+        <CardHeader className="pb-2 bg-gradient-to-r from-indigo-50/50 via-white to-purple-50/30 border-b border-indigo-50">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-200 border-0 flex items-center gap-1 font-semibold text-[11px]">
+                  <TrendingUp className="w-3.5 h-3.5 text-purple-600" /> Data-Driven Impact
+                </Badge>
+                <span className="text-xs text-gray-500 font-medium">Last 6 Months (Feb - Jul 2026)</span>
+              </div>
+              <CardTitle className="text-lg font-bold text-gray-900">
+                Volunteer Hours Progression & Trend
+              </CardTitle>
+              <CardDescription className="text-xs text-gray-500">
+                Track your monthly active volunteer hours logged against company benchmark averages.
+              </CardDescription>
+            </div>
+
+            <div className="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-gray-100 shadow-xs">
+              <div className="text-right">
+                <span className="text-[10px] text-gray-400 font-medium block uppercase tracking-wider">Avg Monthly</span>
+                <span className="text-base font-bold text-purple-700">7.5 hrs/mo</span>
+              </div>
+              <div className="h-7 w-px bg-gray-200" />
+              <div className="text-right">
+                <span className="text-[10px] text-gray-400 font-medium block uppercase tracking-wider">Growth Rate</span>
+                <span className="text-base font-bold text-emerald-600">+200% 🚀</span>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="pt-6">
+          <div className="h-[280px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={monthlyHoursData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} unit=" hrs" />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)' }}
+                  itemStyle={{ color: '#e2e8f0', fontSize: '12px' }}
+                  labelStyle={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px', marginBottom: '4px' }}
+                  formatter={(value: any, name: any) => [
+                    `${value} hours`, 
+                    name === 'hours' ? 'Your Volunteer Hours' : 'Company Employee Avg'
+                  ]}
+                />
+                <Legend 
+                  verticalAlign="top" 
+                  height={36} 
+                  formatter={(value) => (
+                    <span className="text-xs font-medium text-slate-700 mr-4">
+                      {value === 'hours' ? 'Your Hours' : 'Company Peer Avg'}
+                    </span>
+                  )}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="hours" 
+                  stroke="#8b5cf6" 
+                  strokeWidth={3} 
+                  fillOpacity={1} 
+                  fill="url(#colorHours)" 
+                  dot={{ r: 5, fill: '#8b5cf6', strokeWidth: 2, stroke: '#ffffff' }}
+                  activeDot={{ r: 8, strokeWidth: 0 }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="companyAvg" 
+                  stroke="#06b6d4" 
+                  strokeWidth={2} 
+                  strokeDasharray="4 4" 
+                  dot={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-gray-100 text-center">
+            <div className="p-2.5 rounded-lg bg-purple-50/50 border border-purple-100">
+              <span className="text-[11px] font-medium text-purple-700 block">Peak Month</span>
+              <span className="text-sm font-bold text-gray-900">July 2026 (12 hrs)</span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-emerald-50/50 border border-emerald-100">
+              <span className="text-[11px] font-medium text-emerald-700 block">Total 6-Mo Hours</span>
+              <span className="text-sm font-bold text-gray-900">45 Volunteer Hrs</span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-blue-50/50 border border-blue-100">
+              <span className="text-[11px] font-medium text-blue-700 block">VS Company Avg</span>
+              <span className="text-sm font-bold text-gray-900">+14 hrs Above Peer Avg</span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-amber-50/50 border border-amber-100">
+              <span className="text-[11px] font-medium text-amber-700 block">Consistency Score</span>
+              <span className="text-sm font-bold text-gray-900">6/6 Months Active 🏅</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <BadgesAndMilestonesSection />
+
       <EmployeeGamificationBadges />
 
       <div className="space-y-4">

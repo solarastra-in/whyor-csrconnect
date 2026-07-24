@@ -9,15 +9,21 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Search, MapPin, Heart, Filter, Check, Clock, Star, Calendar as CalendarIcon, Grid, CalendarDays, FileText, Download, FileDown, Upload, Eye, EyeOff, CreditCard } from 'lucide-react';
+import { Search, MapPin, Heart, Filter, Check, Clock, Star, Calendar as CalendarIcon, Grid, CalendarDays, FileText, Download, FileDown, Upload, Eye, EyeOff, CreditCard, Share2, Sparkles, Layers, SlidersHorizontal, X, Bell, BellRing, Users, Map } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { DonationGamification } from '@/src/components/DonationGames';
 import { ProjectChat } from '@/src/components/ProjectChat';
 import { DocumentRepository } from '@/src/components/DocumentRepository';
 import { ProjectQRCode } from '@/src/components/ProjectQRCode';
+import { SharedProjectCalendarView } from '@/src/components/SharedProjectCalendarView';
+import { ProjectTestimonials } from '@/src/components/ProjectTestimonials';
+import { ProjectShareModal } from '@/src/components/ProjectShareModal';
+import { ProjectMapView } from '@/src/components/ProjectMapView';
+import { BulkRegistrationModal } from '@/src/components/BulkRegistrationModal';
 import { toast } from 'sonner';
 import { db } from '@/src/lib/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -58,9 +64,121 @@ export const upcomingSessions = [
   { id: 5, date: '2026-07-20T08:00:00Z', title: 'Solar Panel Installation Workshop', project: 'Solar for Villages', type: 'Session' },
 ];
 
+const DEFAULT_DISCOVER_PROJECTS: Project[] = [
+  {
+    id: 'proj-1',
+    name: 'Clean Ganga Riverfront Drive',
+    charity: 'EcoBharat Foundation',
+    location: 'Varanasi, Uttar Pradesh',
+    match: '98% Match',
+    tags: ['Environment', 'Water Sanitation', 'Community'],
+    description: 'Participate in riverbank cleanup drives, water quality testing workshops, and waste management campaigns along the Ganges.',
+    image: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
+    vision: 'Restoring pristine ecological balance and community stewardship across major river basins in India.',
+    aboutCharity: 'EcoBharat Foundation works on sustainable water conservation, afforestation, and zero-waste initiatives across India.',
+    website: 'https://ecobharat.org',
+    contact: { email: 'contact@ecobharat.org', phone: '+91 98765 43210', person: 'Aarav Sharma' },
+    guidelines: [{ title: 'Safety Guide.pdf', size: '1.2 MB', type: 'PDF' }],
+    volunteerRoles: [
+      { id: 'r1', title: 'Cleanup Volunteer', description: 'Lead group cleanup batches along riverfront.', hoursNeeded: 20, hoursPledged: 14, type: 'On-site', skills: ['Event Management', 'Environmental Science'] },
+      { id: 'r2', title: 'Data Analyst', description: 'Log plastic waste metrics and generate progress dashboards.', hoursNeeded: 10, hoursPledged: 8, type: 'Remote', skills: ['Data Analysis', 'Excel'] }
+    ]
+  },
+  {
+    id: 'proj-2',
+    name: 'Digital Literacy for Rural Youth',
+    charity: 'Shiksha India Trust',
+    location: 'Remote / Bengaluru, Karnataka',
+    match: '95% Match',
+    tags: ['Education', 'Technology', 'Skill Development'],
+    description: 'Mentor high school students in basic computer skills, Python fundamentals, and digital safety through weekly online webinars.',
+    image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80',
+    vision: 'Empowering 100,000 rural students with digital skills for the future workforce.',
+    aboutCharity: 'Shiksha India Trust bridges the educational divide by delivering tech infrastructure and mentorship to underserved schools.',
+    website: 'https://shikshaindia.org',
+    contact: { email: 'info@shikshaindia.org', phone: '+91 98123 45678', person: 'Priya Sundaram' },
+    guidelines: [{ title: 'Mentorship Guide.pdf', size: '2.4 MB', type: 'PDF' }],
+    volunteerRoles: [
+      { id: 'r3', title: 'Python Tutor', description: 'Conduct 1-hour interactive weekly coding classes.', hoursNeeded: 15, hoursPledged: 10, type: 'Remote', skills: ['Python', 'Teaching'] }
+    ]
+  },
+  {
+    id: 'proj-3',
+    name: 'Urban Miyawaki Micro-Forest Drive',
+    charity: 'Green Canopy Initiative',
+    location: 'Gurugram, Haryana',
+    match: '92% Match',
+    tags: ['Environment', 'Climate Action', 'Urban Greenery'],
+    description: 'Plant native Miyawaki micro-forests in urban park spaces to boost urban biodiversity and improve air quality index.',
+    image: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
+    vision: 'Creating 500 urban micro-forests across tier-1 and tier-2 cities in India.',
+    aboutCharity: 'Green Canopy Initiative specializes in high-density native afforestation and urban ecology regeneration.',
+    website: 'https://greencanopy.org',
+    contact: { email: 'tree@greencanopy.org', phone: '+91 97111 22334', person: 'Rohan Gupta' },
+    guidelines: [{ title: 'Planting Manual.pdf', size: '1.8 MB', type: 'PDF' }],
+    volunteerRoles: [
+      { id: 'r4', title: 'Planting Site Leader', description: 'Organize sapling distribution and planting teams.', hoursNeeded: 25, hoursPledged: 18, type: 'On-site', skills: ['Logistics', 'Leadership'] }
+    ]
+  },
+  {
+    id: 'proj-4',
+    name: 'Rural Solar Micro-Grid Electrification',
+    charity: 'Surya Jyoti Alliance',
+    location: 'Ranchi, Jharkhand',
+    match: '90% Match',
+    tags: ['Clean Energy', 'Renewable', 'Rural Infrastructure'],
+    description: 'Help deploy standalone solar panels and battery storage units to bring reliable electricity to off-grid tribal villages.',
+    image: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=800&q=80',
+    vision: 'Solar lighting and power for 50,000 off-grid rural households.',
+    aboutCharity: 'Surya Jyoti Alliance implements sustainable clean energy solutions for remote communities.',
+    website: 'https://suryajyoti.org',
+    contact: { email: 'solar@suryajyoti.org', phone: '+91 94321 09876', person: 'Anand Verma' },
+    guidelines: [{ title: 'Solar Tech Brief.pdf', size: '3.1 MB', type: 'PDF' }],
+    volunteerRoles: [
+      { id: 'r5', title: 'Solar Workshop Lead', description: 'Train local youth in solar maintenance.', hoursNeeded: 20, hoursPledged: 12, type: 'On-site', skills: ['Electrical Engineering', 'Mentorship'] }
+    ]
+  },
+  {
+    id: 'proj-5',
+    name: 'Mobile Healthcare & Preventive Camps',
+    charity: 'HealthFirst India',
+    location: 'Pune, Maharashtra',
+    match: '88% Match',
+    tags: ['Healthcare', 'Community', 'Sanitation'],
+    description: 'Support doctors and health workers in conducting free health checkups, eye screenings, and diabetes detection camps for daily wage workers.',
+    image: 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=800&q=80',
+    vision: 'Accessible healthcare at the doorstep for underprivileged communities.',
+    aboutCharity: 'HealthFirst India operates mobile medical clinics across 12 states.',
+    website: 'https://healthfirstindia.org',
+    contact: { email: 'camps@healthfirstindia.org', phone: '+91 91234 56789', person: 'Dr. Meera Sen' },
+    guidelines: [{ title: 'Medical Camp Protocol.pdf', size: '1.5 MB', type: 'PDF' }],
+    volunteerRoles: [
+      { id: 'r6', title: 'Camp Operations Assistant', description: 'Manage patient registration and queue logistics.', hoursNeeded: 15, hoursPledged: 10, type: 'On-site', skills: ['Public Speaking', 'Logistics'] }
+    ]
+  },
+  {
+    id: 'proj-6',
+    name: 'Women Skill & Entrepreneurship Lab',
+    charity: 'Stree Shakti Trust',
+    location: 'Jaipur, Rajasthan',
+    match: '86% Match',
+    tags: ['Skill Development', 'Women Empowerment', 'Livelihood'],
+    description: 'Provide vocational training in handicraft production, digital marketing, financial literacy, and online micro-business setup for women self-help groups.',
+    image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=800&q=80',
+    vision: 'Economic independence and digital financial access for 25,000 rural women entrepreneurs.',
+    aboutCharity: 'Stree Shakti Trust creates self-sustaining micro-enterprises for women across rural North India.',
+    website: 'https://streeshakti.org',
+    contact: { email: 'shakti@streeshakti.org', phone: '+91 98989 12345', person: 'Sunita Sharma' },
+    guidelines: [{ title: 'Micro Business Setup.pdf', size: '2.0 MB', type: 'PDF' }],
+    volunteerRoles: [
+      { id: 'r7', title: 'Business Mentor', description: 'Guide women SHGs in pricing, packaging, and Instagram marketing.', hoursNeeded: 12, hoursPledged: 8, type: 'Remote', skills: ['Marketing', 'Finance'] }
+    ]
+  }
+];
+
 export function DiscoverProjects() {
   const { addHours, userSkills } = useVolunteer();
-  const [projectsData, setProjectsData] = useState<Project[]>([]);
+  const [projectsData, setProjectsData] = useState<Project[]>(DEFAULT_DISCOVER_PROJECTS);
   const [allTags, setAllTags] = useState<string[]>([]);
 
   useEffect(() => {
@@ -68,12 +186,21 @@ export function DiscoverProjects() {
       try {
         const snap = await getDocs(collection(db, 'projects'));
         const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
-        setProjectsData(fetched);
         
-        const tags = Array.from(new Set(fetched.flatMap(p => p.tags || [])));
-        setAllTags(tags);
+        if (fetched.length > 0) {
+          setProjectsData(fetched);
+          const tags = Array.from(new Set(fetched.flatMap(p => p.tags || [])));
+          setAllTags(tags);
+        } else {
+          setProjectsData(DEFAULT_DISCOVER_PROJECTS);
+          const tags = Array.from(new Set(DEFAULT_DISCOVER_PROJECTS.flatMap(p => p.tags || [])));
+          setAllTags(tags);
+        }
       } catch (e) {
         console.error(e);
+        setProjectsData(DEFAULT_DISCOVER_PROJECTS);
+        const tags = Array.from(new Set(DEFAULT_DISCOVER_PROJECTS.flatMap(p => p.tags || [])));
+        setAllTags(tags);
       }
     };
     fetchProjects();
@@ -85,6 +212,12 @@ export function DiscoverProjects() {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [selectedLocationMode, setSelectedLocationMode] = useState<string>('all');
+  const [sharingProject, setSharingProject] = useState<any | null>(null);
+  const [bulkRegisterProject, setBulkRegisterProject] = useState<any | null>(null);
+  const [alertedProjects, setAlertedProjects] = useState<any[]>([]);
+
   const [donateAmount, setDonateAmount] = useState('');
   const [volunteerHours, setVolunteerHours] = useState('');
   const [searchHistory, setSearchHistory] = useState<Array<{term: string, tags: string[]}>>([]);
@@ -147,10 +280,33 @@ export function DiscoverProjects() {
       } catch(e) {}
     }
 
-
+    const alertedProjs = localStorage.getItem('alertedProjects');
+    if (alertedProjs) {
+      try {
+        setAlertedProjects(JSON.parse(alertedProjs));
+      } catch(e) {}
+    }
   }, []);
 
-  const toggleSaveProject = (e: React.MouseEvent, id: number) => {
+  const toggleProjectAlert = (e: React.MouseEvent, id: any, projectName: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setAlertedProjects(prev => {
+      const isAlerted = prev.includes(id);
+      const newAlerted = isAlerted ? prev.filter(pId => pId !== id) : [...prev, id];
+      localStorage.setItem('alertedProjects', JSON.stringify(newAlerted));
+      if (!isAlerted) {
+        toast.success(`Spot Alert Activated for ${projectName}!`, {
+          description: "We will notify you via email and push alert as soon as new volunteer spots or shifts open up."
+        });
+      } else {
+        toast.info(`Spot alert deactivated for ${projectName}.`);
+      }
+      return newAlerted;
+    });
+  };
+
+  const toggleSaveProject = (e: React.MouseEvent, id: any) => {
     e.preventDefault();
     e.stopPropagation();
     setSavedProjects(prev => {
@@ -161,7 +317,7 @@ export function DiscoverProjects() {
     });
   };
 
-  const toggleHideProject = (e: React.MouseEvent, id: number) => {
+  const toggleHideProject = (e: React.MouseEvent, id: any) => {
     e.preventDefault();
     e.stopPropagation();
     setHiddenProjects(prev => {
@@ -173,22 +329,15 @@ export function DiscoverProjects() {
     });
   };
 
-  useEffect(() => {
-    if (searchTerm === '' && selectedTags.length === 0) return;
+  const allSkills = Array.from(
+    new Set<string>(
+      projectsData.flatMap(p => (p.volunteerRoles || []).flatMap(r => (r.skills || []) as string[]))
+    )
+  ).filter(Boolean);
 
-    const timeoutId = setTimeout(() => {
-      setSearchHistory(prev => {
-        const isDuplicate = prev.length > 0 && prev[0].term === searchTerm && JSON.stringify(prev[0].tags) === JSON.stringify(selectedTags);
-        if (isDuplicate) return prev;
-
-        const newHistory = [{term: searchTerm, tags: selectedTags}, ...prev].filter((v, i, a) => a.findIndex(t => t.term === v.term && JSON.stringify(t.tags) === JSON.stringify(v.tags)) === i).slice(0, 5);
-        localStorage.setItem('projectSearchHistory', JSON.stringify(newHistory));
-        return newHistory;
-      });
-    }, 1500);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm, selectedTags]);
+  const allLocations = Array.from(
+    new Set(projectsData.map(p => p.location))
+  ).filter(Boolean);
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => 
@@ -196,18 +345,44 @@ export function DiscoverProjects() {
     );
   };
 
+  const toggleSkill = (skill: string) => {
+    setSelectedSkills(prev =>
+      prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill]
+    );
+  };
+
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setSelectedTags([]);
+    setSelectedSkills([]);
+    setSelectedLocationMode('all');
+  };
+
   const filteredProjects = projectsData.filter(project => {
-    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const projectSkills = (project.volunteerRoles || []).flatMap(r => r.skills || []);
+    const projectTypes = (project.volunteerRoles || []).map(r => (r.type || '').toLowerCase());
+
+    const matchesSearch = searchTerm === '' || 
+                          project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           project.charity.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           project.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          project.volunteerRoles.some(role => role.skills?.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())));
+                          (project.description && project.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                          projectSkills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesTags = selectedTags.length === 0 || 
-                        selectedTags.some(tag => project.tags.includes(tag));
+                        selectedTags.some(tag => project.tags?.includes(tag));
+
+    const matchesSkills = selectedSkills.length === 0 ||
+                          selectedSkills.some(skill => projectSkills.includes(skill));
+
+    const matchesLocationMode = selectedLocationMode === 'all' ||
+      (selectedLocationMode === 'remote' ? projectTypes.includes('remote') || project.location.toLowerCase().includes('remote') :
+       selectedLocationMode === 'onsite' ? projectTypes.includes('on-site') || !project.location.toLowerCase().includes('remote') :
+       project.location === selectedLocationMode);
+
+    const matchesVisibility = isCompanyAdmin || !hiddenProjects.includes(project.id as any);
                         
-    const matchesVisibility = isCompanyAdmin || !hiddenProjects.includes(project.id);
-                        
-    return matchesSearch && matchesTags && matchesVisibility;
+    return matchesSearch && matchesTags && matchesSkills && matchesLocationMode && matchesVisibility;
   });
 
   return (
@@ -225,61 +400,172 @@ export function DiscoverProjects() {
       </div>
 
       <Tabs defaultValue="grid" className="w-full">
-        <div className="flex gap-4 mb-6 flex-wrap justify-between items-center">
-          <div className="flex gap-4 flex-wrap flex-1 min-w-[300px]">
-            <div className="relative flex-1 min-w-[280px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        {/* Comprehensive Search and Multi-Filter Bar */}
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm space-y-3 mb-6">
+          <div className="flex flex-col lg:flex-row gap-3">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input 
-                placeholder="Search by title, location, or skill..." 
-                className="pl-9"
+                placeholder="Search projects by cause, NGO, title, or skills..." 
+                className="pl-9 h-10 text-xs bg-slate-50/50 border-slate-200 focus:bg-white"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
-            
-            <Popover>
-              <PopoverTrigger render={<Button variant="outline" className="flex items-center" />}>
-                <Filter className="mr-2 h-4 w-4" />
-                Filters {selectedTags.length > 0 && `(${selectedTags.length})`}
-              </PopoverTrigger>
-              <PopoverContent className="w-56 p-0" align="end">
-                <Command>
-                  <CommandInput placeholder="Search tags..." />
-                  <CommandList>
-                    <CommandEmpty>No tags found.</CommandEmpty>
-                    <CommandGroup>
-                      {allTags.map((tag) => (
-                        <CommandItem
-                          key={tag}
-                          onSelect={() => toggleTag(tag)}
-                        >
-                          <div className={cn(
-                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                            selectedTags.includes(tag)
-                              ? "bg-primary text-primary-foreground"
-                              : "opacity-50 [&_svg]:invisible"
-                          )}>
-                            <Check className={cn("h-4 w-4")} />
-                          </div>
-                          <span>{tag}</span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-            {selectedTags.length > 0 && (
-              <Button variant="ghost" onClick={() => setSelectedTags([])} className="text-muted-foreground hover:text-foreground">
-                Clear filters
-              </Button>
-            )}
+
+            {/* Filter Dropdowns */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* 1. Cause/Category Filter */}
+              <Popover>
+                <PopoverTrigger render={<Button variant="outline" className="h-10 text-xs gap-1.5 border-slate-200 bg-slate-50/50 hover:bg-slate-100" />}>
+                  <Filter className="h-3.5 w-3.5 text-indigo-600" />
+                  <span>Cause</span>
+                  {selectedTags.length > 0 && (
+                    <Badge className="bg-indigo-600 text-white font-bold text-[10px] px-1.5 py-0 h-4 ml-0.5">
+                      {selectedTags.length}
+                    </Badge>
+                  )}
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-0" align="end">
+                  <Command>
+                    <CommandInput placeholder="Search causes/tags..." className="text-xs" />
+                    <CommandList>
+                      <CommandEmpty>No causes found.</CommandEmpty>
+                      <CommandGroup>
+                        {allTags.map((tag) => (
+                          <CommandItem
+                            key={tag}
+                            onSelect={() => toggleTag(tag)}
+                            className="text-xs cursor-pointer"
+                          >
+                            <div className={cn(
+                              "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-slate-300",
+                              selectedTags.includes(tag)
+                                ? "bg-indigo-600 text-white border-indigo-600"
+                                : "opacity-50 [&_svg]:invisible"
+                            )}>
+                              <Check className="h-3 w-3" />
+                            </div>
+                            <span>{tag}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+
+              {/* 2. Skills Required Filter */}
+              <Popover>
+                <PopoverTrigger render={<Button variant="outline" className="h-10 text-xs gap-1.5 border-slate-200 bg-slate-50/50 hover:bg-slate-100" />}>
+                  <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+                  <span>Skills</span>
+                  {selectedSkills.length > 0 && (
+                    <Badge className="bg-indigo-600 text-white font-bold text-[10px] px-1.5 py-0 h-4 ml-0.5">
+                      {selectedSkills.length}
+                    </Badge>
+                  )}
+                </PopoverTrigger>
+                <PopoverContent className="w-60 p-0" align="end">
+                  <Command>
+                    <CommandInput placeholder="Search required skills..." className="text-xs" />
+                    <CommandList>
+                      <CommandEmpty>No skills found.</CommandEmpty>
+                      <CommandGroup>
+                        {allSkills.map((skill) => (
+                          <CommandItem
+                            key={skill}
+                            onSelect={() => toggleSkill(skill)}
+                            className="text-xs cursor-pointer"
+                          >
+                            <div className={cn(
+                              "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-slate-300",
+                              selectedSkills.includes(skill)
+                                ? "bg-indigo-600 text-white border-indigo-600"
+                                : "opacity-50 [&_svg]:invisible"
+                            )}>
+                              <Check className="h-3 w-3" />
+                            </div>
+                            <span>{skill}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+
+              {/* 3. Location / Mode Filter */}
+              <Select value={selectedLocationMode} onValueChange={setSelectedLocationMode}>
+                <SelectTrigger className="h-10 text-xs w-[175px] border-slate-200 bg-slate-50/50">
+                  <MapPin className="w-3.5 h-3.5 text-indigo-600 mr-1.5 shrink-0" />
+                  <SelectValue placeholder="Location / Mode" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">All Locations & Modes</SelectItem>
+                  <SelectItem value="remote" className="text-xs">💻 Remote Opportunities</SelectItem>
+                  <SelectItem value="onsite" className="text-xs">📍 On-site Opportunities</SelectItem>
+                  {allLocations.map(loc => (
+                    <SelectItem key={loc} value={loc} className="text-xs">{loc}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* View Switchers */}
+              <TabsList className="h-10 border border-slate-200 bg-slate-100 p-0.5">
+                <TabsTrigger value="grid" className="text-xs px-3 h-9"><Grid className="h-3.5 w-3.5 mr-1.5" /> Grid</TabsTrigger>
+                <TabsTrigger value="map" className="text-xs px-3 h-9"><Map className="h-3.5 w-3.5 mr-1.5 text-indigo-600" /> Map View</TabsTrigger>
+                <TabsTrigger value="calendar" className="text-xs px-3 h-9"><CalendarIcon className="h-3.5 w-3.5 mr-1.5" /> Calendar</TabsTrigger>
+              </TabsList>
+            </div>
           </div>
-          
-          <TabsList>
-            <TabsTrigger value="grid"><Grid className="h-4 w-4 mr-2" /> Grid</TabsTrigger>
-            <TabsTrigger value="calendar"><CalendarIcon className="h-4 w-4 mr-2" /> Calendar</TabsTrigger>
-          </TabsList>
+
+          {/* Active Filters Bar */}
+          {(selectedTags.length > 0 || selectedSkills.length > 0 || selectedLocationMode !== 'all' || searchTerm) && (
+            <div className="flex items-center gap-2 pt-2 border-t border-slate-100 flex-wrap text-xs">
+              <span className="font-semibold text-slate-500 flex items-center gap-1">
+                <SlidersHorizontal className="w-3 h-3 text-indigo-600" /> Active Filters:
+              </span>
+
+              {selectedTags.map(tag => (
+                <Badge key={tag} className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200 text-[11px] gap-1 px-2 py-0.5">
+                  Cause: {tag}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => toggleTag(tag)} />
+                </Badge>
+              ))}
+
+              {selectedSkills.map(skill => (
+                <Badge key={skill} className="bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200 text-[11px] gap-1 px-2 py-0.5">
+                  Skill: {skill}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => toggleSkill(skill)} />
+                </Badge>
+              ))}
+
+              {selectedLocationMode !== 'all' && (
+                <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200 text-[11px] gap-1 px-2 py-0.5">
+                  Mode: {selectedLocationMode === 'remote' ? 'Remote' : selectedLocationMode === 'onsite' ? 'On-site' : selectedLocationMode}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedLocationMode('all')} />
+                </Badge>
+              )}
+
+              <Button
+                variant="ghost"
+                onClick={clearAllFilters}
+                className="h-6 px-2 text-[11px] text-slate-500 hover:text-red-600 font-medium"
+              >
+                Clear All
+              </Button>
+            </div>
+          )}
         </div>
 
         {searchHistory.length > 0 && (
@@ -315,7 +601,7 @@ export function DiscoverProjects() {
           <Card key={project.id} className={`hover:shadow-md transition-shadow flex flex-col overflow-hidden ${matchesSkills ? 'ring-2 ring-purple-500' : ''}`}>
             <CardContent className="p-0 flex flex-col flex-1">
               <div className="h-48 bg-gray-200 relative">
-                <img src={project.image} alt={project.name} className="w-full h-full object-cover" />
+                <img src={project.image || (project as any).imageUrl || 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80'} alt={project.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 <div className="absolute top-3 left-3 flex flex-col gap-2">
                   <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold text-blue-700 shadow-sm flex items-center">
                     <Heart className="h-3 w-3 mr-1 fill-blue-700" /> {project.match}
@@ -332,6 +618,17 @@ export function DiscoverProjects() {
                   title={savedProjects.includes(project.id) ? "Remove from saved" : "Save project"}
                 >
                   <Heart className={`h-4 w-4 ${savedProjects.includes(project.id) ? "fill-red-500 text-red-500" : "text-gray-500"}`} />
+                </button>
+                <button 
+                  onClick={(e) => toggleProjectAlert(e, project.id, project.name)}
+                  className={`absolute top-3 ${isCompanyAdmin ? 'right-24' : 'right-12'} bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-sm hover:bg-white transition-colors`}
+                  title={alertedProjects.includes(project.id) ? "Spot alerts active - click to turn off" : "Alert me when new volunteer spots open up"}
+                >
+                  {alertedProjects.includes(project.id) ? (
+                    <BellRing className="h-4 w-4 fill-amber-500 text-amber-600" />
+                  ) : (
+                    <Bell className="h-4 w-4 text-gray-500" />
+                  )}
                 </button>
                 {isCompanyAdmin && (
                   <button 
@@ -356,112 +653,128 @@ export function DiscoverProjects() {
                 <p className="text-sm text-gray-600 mb-6 flex-1 line-clamp-3">{project.description}</p>
                 
                 <div className="flex flex-col gap-3 mt-auto">
-                  <Dialog>
-                    <DialogTrigger render={<Button variant="outline" className="w-full text-gray-700" />}>
-                      View Full Details
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle className="text-2xl">{project.name}</DialogTitle>
-                        <DialogDescription className="text-base">
-                          {project.location} • By {project.charity}
-                        </DialogDescription>
-                      </DialogHeader>
-                      
-                      <div className="py-4">
-                        <Tabs defaultValue="details" className="w-full">
-                          <TabsList className="mb-4">
-                            <TabsTrigger value="details">Details</TabsTrigger>
-                            <TabsTrigger value="resources">Resources</TabsTrigger>
-                            <TabsTrigger value="chat">Team Chat</TabsTrigger>
-                            {isCompanyAdmin && <TabsTrigger value="attendance">Attendance</TabsTrigger>}
-                            {isCompanyAdmin && <TabsTrigger value="audit">Activity Audit</TabsTrigger>}
-                          </TabsList>
-                          
-                          <TabsContent value="details" className="space-y-6">
-                            {editingProjectId === project.id ? (
-                              <div className="space-y-4">
-                                <div className="flex justify-between items-center mb-4">
-                                  <h3 className="text-xl font-bold text-gray-900">Edit Project Details</h3>
-                                  <div className="flex gap-2">
-                                    <Button variant="outline" size="sm" onClick={cancelEditing}>Cancel</Button>
-                                    <Button size="sm" onClick={saveEditing}>Save Changes</Button>
-                                  </div>
-                                </div>
-                                <div className="grid gap-2">
-                                  <Label>Image URL</Label>
-                                  <Input value={editFormData?.image || ''} onChange={(e) => setEditFormData({...editFormData, image: e.target.value})} />
-                                </div>
-                                <div className="grid gap-2">
-                                  <Label>Description</Label>
-                                  <textarea className="w-full min-h-[100px] p-3 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" value={editFormData?.description || ''} onChange={(e) => setEditFormData({...editFormData, description: e.target.value})} />
-                                </div>
-                                <div className="grid gap-2">
-                                  <Label>Vision</Label>
-                                  <textarea className="w-full min-h-[80px] p-3 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" value={editFormData?.vision || ''} onChange={(e) => setEditFormData({...editFormData, vision: e.target.value})} />
-                                </div>
-                                <div className="grid gap-2">
-                                  <Label>About Charity</Label>
-                                  <textarea className="w-full min-h-[80px] p-3 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" value={editFormData?.aboutCharity || ''} onChange={(e) => setEditFormData({...editFormData, aboutCharity: e.target.value})} />
-                                </div>
-                                <div className="grid gap-4 bg-gray-50 p-4 rounded-lg mt-4 border border-gray-100">
-                                  <h4 className="font-semibold text-gray-900">Contact Information</h4>
-                                  <div className="grid gap-2">
-                                    <Label>Contact Person</Label>
-                                    <Input value={editFormData?.contact?.person || ''} onChange={(e) => setEditFormData({...editFormData, contact: {...editFormData.contact, person: e.target.value}})} />
+                  <div className="flex gap-2">
+                    <Dialog>
+                      <DialogTrigger render={<Button variant="outline" className="flex-1 text-gray-700" />}>
+                        View Full Details
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+                        <DialogHeader className="flex flex-row items-start justify-between gap-4">
+                          <div>
+                            <DialogTitle className="text-2xl">{project.name}</DialogTitle>
+                            <DialogDescription className="text-base">
+                              {project.location} • By {project.charity}
+                            </DialogDescription>
+                          </div>
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSharingProject(project)}
+                            className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200 font-semibold gap-1.5 shrink-0"
+                          >
+                            <Share2 className="w-3.5 h-3.5" /> Share
+                          </Button>
+                        </DialogHeader>
+                        
+                        <div className="py-4">
+                          <Tabs defaultValue="details" className="w-full">
+                            <TabsList className="mb-4 flex-wrap">
+                              <TabsTrigger value="details">Details</TabsTrigger>
+                              <TabsTrigger value="testimonials">⭐ Testimonials</TabsTrigger>
+                              <TabsTrigger value="resources">Resources</TabsTrigger>
+                              <TabsTrigger value="chat">Team Chat</TabsTrigger>
+                              {isCompanyAdmin && <TabsTrigger value="attendance">Attendance</TabsTrigger>}
+                              {isCompanyAdmin && <TabsTrigger value="audit">Activity Audit</TabsTrigger>}
+                            </TabsList>
+                            
+                            <TabsContent value="details" className="space-y-6">
+                              {editingProjectId === project.id ? (
+                                <div className="space-y-4">
+                                  <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-xl font-bold text-gray-900">Edit Project Details</h3>
+                                    <div className="flex gap-2">
+                                      <Button variant="outline" size="sm" onClick={cancelEditing}>Cancel</Button>
+                                      <Button size="sm" onClick={saveEditing}>Save Changes</Button>
+                                    </div>
                                   </div>
                                   <div className="grid gap-2">
-                                    <Label>Email</Label>
-                                    <Input value={editFormData?.contact?.email || ''} onChange={(e) => setEditFormData({...editFormData, contact: {...editFormData.contact, email: e.target.value}})} />
+                                    <Label>Image URL</Label>
+                                    <Input value={editFormData?.image || ''} onChange={(e) => setEditFormData({...editFormData, image: e.target.value})} />
                                   </div>
                                   <div className="grid gap-2">
-                                    <Label>Phone</Label>
-                                    <Input value={editFormData?.contact?.phone || ''} onChange={(e) => setEditFormData({...editFormData, contact: {...editFormData.contact, phone: e.target.value}})} />
+                                    <Label>Description</Label>
+                                    <textarea className="w-full min-h-[100px] p-3 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" value={editFormData?.description || ''} onChange={(e) => setEditFormData({...editFormData, description: e.target.value})} />
                                   </div>
                                   <div className="grid gap-2">
-                                    <Label>Website</Label>
-                                    <Input value={editFormData?.website || ''} onChange={(e) => setEditFormData({...editFormData, website: e.target.value})} />
+                                    <Label>Vision</Label>
+                                    <textarea className="w-full min-h-[80px] p-3 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" value={editFormData?.vision || ''} onChange={(e) => setEditFormData({...editFormData, vision: e.target.value})} />
+                                  </div>
+                                  <div className="grid gap-2">
+                                    <Label>About Charity</Label>
+                                    <textarea className="w-full min-h-[80px] p-3 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600" value={editFormData?.aboutCharity || ''} onChange={(e) => setEditFormData({...editFormData, aboutCharity: e.target.value})} />
+                                  </div>
+                                  <div className="grid gap-4 bg-gray-50 p-4 rounded-lg mt-4 border border-gray-100">
+                                    <h4 className="font-semibold text-gray-900">Contact Information</h4>
+                                    <div className="grid gap-2">
+                                      <Label>Contact Person</Label>
+                                      <Input value={editFormData?.contact?.person || ''} onChange={(e) => setEditFormData({...editFormData, contact: {...editFormData.contact, person: e.target.value}})} />
+                                    </div>
+                                    <div className="grid gap-2">
+                                      <Label>Email</Label>
+                                      <Input value={editFormData?.contact?.email || ''} onChange={(e) => setEditFormData({...editFormData, contact: {...editFormData.contact, email: e.target.value}})} />
+                                    </div>
+                                    <div className="grid gap-2">
+                                      <Label>Phone</Label>
+                                      <Input value={editFormData?.contact?.phone || ''} onChange={(e) => setEditFormData({...editFormData, contact: {...editFormData.contact, phone: e.target.value}})} />
+                                    </div>
+                                    <div className="grid gap-2">
+                                      <Label>Website</Label>
+                                      <Input value={editFormData?.website || ''} onChange={(e) => setEditFormData({...editFormData, website: e.target.value})} />
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            ) : (
-                              <>
-                                {isCompanyAdmin && (
-                                  <div className="flex justify-end mb-2">
-                                    <Button variant="outline" size="sm" onClick={() => startEditing(project)} className="text-gray-700 bg-white shadow-sm border-gray-200">
-                                      Edit Project
-                                    </Button>
+                              ) : (
+                                <>
+                                  {isCompanyAdmin && (
+                                    <div className="flex justify-end mb-2">
+                                      <Button variant="outline" size="sm" onClick={() => startEditing(project)} className="text-gray-700 bg-white shadow-sm border-gray-200">
+                                        Edit Project
+                                      </Button>
+                                    </div>
+                                  )}
+                                  <img src={project.image || (project as any).imageUrl || 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80'} alt={project.name} className="w-full h-64 object-cover rounded-lg" referrerPolicy="no-referrer" />
+                                  
+                                  <div>
+                                    <h4 className="font-semibold text-lg mb-2">About the Project</h4>
+                                    <p className="text-gray-700">{project.description}</p>
                                   </div>
-                                )}
-                                <img src={project.image} alt={project.name} className="w-full h-64 object-cover rounded-lg" />
-                                
-                                <div>
-                                  <h4 className="font-semibold text-lg mb-2">About the Project</h4>
-                                  <p className="text-gray-700">{project.description}</p>
-                                </div>
-                                
-                                <div>
-                                  <h4 className="font-semibold text-lg mb-2">Vision</h4>
-                                  <p className="text-gray-700">{project.vision}</p>
-                                </div>
-                                
-                                <div>
-                                  <h4 className="font-semibold text-lg mb-2">About {project.charity}</h4>
-                                  <p className="text-gray-700">{project.aboutCharity}</p>
-                                </div>
+                                  
+                                  <div>
+                                    <h4 className="font-semibold text-lg mb-2">Vision</h4>
+                                    <p className="text-gray-700">{project.vision}</p>
+                                  </div>
+                                  
+                                  <div>
+                                    <h4 className="font-semibold text-lg mb-2">About {project.charity}</h4>
+                                    <p className="text-gray-700">{project.aboutCharity}</p>
+                                  </div>
 
-                                <div className="bg-gray-50 p-4 rounded-lg">
-                                  <h4 className="font-semibold mb-2">Contact Information</h4>
-                                  <div className="space-y-1 text-sm text-gray-600">
-                                    <p><strong>Contact Person:</strong> {project.contact.person}</p>
-                                    <p><strong>Email:</strong> {project.contact.email}</p>
-                                    <p><strong>Phone:</strong> {project.contact.phone}</p>
-                                    <p><strong>Website:</strong> <a href={project.website} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">{project.website}</a></p>
+                                  <div className="bg-gray-50 p-4 rounded-lg">
+                                    <h4 className="font-semibold mb-2">Contact Information</h4>
+                                    <div className="space-y-1 text-sm text-gray-600">
+                                      <p><strong>Contact Person:</strong> {project.contact.person}</p>
+                                      <p><strong>Email:</strong> {project.contact.email}</p>
+                                      <p><strong>Phone:</strong> {project.contact.phone}</p>
+                                      <p><strong>Website:</strong> <a href={project.website} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">{project.website}</a></p>
+                                    </div>
                                   </div>
-                                </div>
-                              </>
-                            )}
-                          </TabsContent>
+                                </>
+                              )}
+                            </TabsContent>
+
+                            <TabsContent value="testimonials" className="mt-4">
+                              <ProjectTestimonials projectId={project.id.toString()} projectName={project.name} />
+                            </TabsContent>
 
                           <TabsContent value="resources" className="space-y-6 mt-4">
                             <DocumentRepository isAdmin={isCompanyAdmin} projectId={project.id.toString()} />
@@ -537,16 +850,47 @@ export function DiscoverProjects() {
                     </DialogContent>
                   </Dialog>
 
-                  <div className="flex gap-3">
-                    {!isCompanyAdmin && (
-                      <Button className="flex-1 bg-blue-600 text-white hover:bg-blue-700 transition-colors" onClick={() => toast.info('Donation processing via Razorpay is coming soon.')}>
-                          Donate (Coming Soon)
-                        </Button>
-                    )}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setSharingProject(project)}
+                    className="h-10 w-10 text-indigo-600 border-indigo-200 hover:bg-indigo-50 shrink-0"
+                    title="Share Project"
+                  >
+                    <Share2 className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                  <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+                    <Button
+                      variant="outline"
+                      onClick={() => setBulkRegisterProject(project)}
+                      className="bg-indigo-50/80 hover:bg-indigo-100 text-indigo-700 border-indigo-200 font-semibold text-xs gap-1 flex-1 h-9"
+                      title="Bulk register your team or department"
+                    >
+                      <Users className="w-3.5 h-3.5 text-indigo-600" /> Team Sign-up
+                    </Button>
+
+                    <Button
+                      variant={alertedProjects.includes(project.id) ? "default" : "outline"}
+                      onClick={(e) => toggleProjectAlert(e, project.id, project.name)}
+                      className={`text-xs gap-1 h-9 ${alertedProjects.includes(project.id) ? 'bg-amber-600 hover:bg-amber-700 text-white font-bold' : 'border-amber-200 text-amber-700 bg-amber-50/50 hover:bg-amber-100'}`}
+                      title="Alert me when new volunteer spots open up"
+                    >
+                      {alertedProjects.includes(project.id) ? (
+                        <>
+                          <BellRing className="w-3.5 h-3.5 fill-white" /> Spot Alert On
+                        </>
+                      ) : (
+                        <>
+                          <Bell className="w-3.5 h-3.5 text-amber-600" /> Alert Me
+                        </>
+                      )}
+                    </Button>
 
                     <Dialog>
-                      <DialogTrigger render={<Button variant="outline" className="flex-1 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors" />}>
-                        {isCompanyAdmin ? 'Manage Volunteering' : 'Volunteer'}
+                      <DialogTrigger render={<Button variant="outline" className="flex-1 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors text-xs h-9" />}>
+                        {isCompanyAdmin ? 'Manage' : 'Volunteer'}
                       </DialogTrigger>
                       <DialogContent className={isCompanyAdmin ? "sm:max-w-2xl p-6 sm:p-8" : "sm:max-w-xl p-6 sm:p-8"}>
                         <DialogHeader>
@@ -669,42 +1013,30 @@ export function DiscoverProjects() {
       </div>
         </TabsContent>
         
+        <TabsContent value="map" className="m-0">
+          <ProjectMapView projects={filteredProjects} onSelectProject={(p) => setSharingProject(p)} />
+        </TabsContent>
+
         <TabsContent value="calendar" className="m-0">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-gray-900">Upcoming Sessions & Deadlines</h3>
-                <Button variant="outline" size="sm"><CalendarDays className="h-4 w-4 mr-2" /> Sync to Calendar</Button>
-              </div>
-              <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
-                {upcomingSessions.map((session) => (
-                  <div key={session.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-white shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
-                      {session.type === 'Deadline' ? (
-                        <Clock className="h-4 w-4 text-orange-500" />
-                      ) : (
-                        <CalendarIcon className="h-4 w-4 text-blue-500" />
-                      )}
-                    </div>
-                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-lg border border-slate-200 bg-white shadow-sm">
-                      <div className="flex items-center justify-between mb-1">
-                        <Badge variant="outline" className={session.type === 'Deadline' ? 'text-orange-600 border-orange-200 bg-orange-50' : 'text-blue-600 border-blue-200 bg-blue-50'}>
-                          {session.type}
-                        </Badge>
-                        <time className="text-sm font-medium text-slate-500">
-                          {new Date(session.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </time>
-                      </div>
-                      <h4 className="text-base font-bold text-slate-900 mt-2">{session.title}</h4>
-                      <p className="text-sm text-slate-600 mt-1">{session.project}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <SharedProjectCalendarView projects={projectsData} />
         </TabsContent>
       </Tabs>
+
+      {sharingProject && (
+        <ProjectShareModal
+          isOpen={!!sharingProject}
+          onClose={() => setSharingProject(null)}
+          project={sharingProject}
+        />
+      )}
+
+      {bulkRegisterProject && (
+        <BulkRegistrationModal
+          isOpen={!!bulkRegisterProject}
+          onClose={() => setBulkRegisterProject(null)}
+          project={bulkRegisterProject}
+        />
+      )}
     </div>
   );
 }

@@ -264,7 +264,7 @@ export function CompanySettings() {
                   <div className="flex items-center gap-4">
                     <div className="h-16 w-16 rounded-md bg-gray-100 flex items-center justify-center border border-dashed border-gray-300 overflow-hidden">
                       {(company as any)?.logoUrl ? (
-                        <img src={(company as any).logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                        <img src={(company as any).logoUrl} alt="Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                       ) : (
                         <Building className="h-8 w-8 text-gray-400" />
                       )}

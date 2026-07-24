@@ -125,7 +125,7 @@ export function CompanyEmployees() {
             <div className="space-y-4">
               {employees.map((emp) => (
                 <div key={emp.id} className="flex items-center gap-4 p-3 bg-white border rounded-lg">
-                  <img src={emp.photoURL || 'https://via.placeholder.com/40'} alt="" className="w-10 h-10 rounded-full" />
+                  <img src={emp.photoURL || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80'} alt="" className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" />
                   <div className="flex-1">
                     <div className="font-medium">{emp.name || emp.email}</div>
                     <div className="text-sm text-gray-500">{emp.email}</div>

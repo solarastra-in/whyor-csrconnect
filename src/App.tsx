@@ -27,6 +27,7 @@ import { DiscoverProjects } from './pages/DiscoverProjects';
 import { Challenges } from './pages/Challenges';
 import { MyImpact } from './pages/MyImpact';
 import { EmployeeSettings } from './pages/EmployeeSettings';
+import { ResourceHub } from './pages/ResourceHub';
 
 import { CompanyDashboard } from './pages/CompanyDashboard';
 import { CompanyEngagement } from './pages/CompanyEngagement';
@@ -90,6 +91,7 @@ export default function App() {
           <Route path="projects" element={<DiscoverProjects />} />
           <Route path="challenges" element={<Challenges />} />
           <Route path="ergs" element={<EmployeeERGs />} />
+          <Route path="resources" element={<ResourceHub />} />
           <Route path="impact" element={<MyImpact />} />
           <Route path="settings" element={<EmployeeSettings />} />
         </Route>

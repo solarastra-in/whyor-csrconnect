@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { toast } from 'sonner';
+import { CSRNewsFeed } from '@/src/components/CSRNewsFeed';
+import { CSREcosystemBanner } from '@/src/components/CSREcosystemBanner';
 import { FAQ, FAQItem } from '@/src/components/FAQ';
 import { LanguageSwitcher } from '@/src/components/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
@@ -133,30 +135,9 @@ export function LandingPage() {
           {t('landing.hero.subtitle')}
         </p>
         
-        <div className="relative mx-auto max-w-5xl rounded-xl overflow-hidden shadow-2xl border border-slate-200 mb-16 group">
-          <img 
-            src="https://images.unsplash.com/photo-1593113563332-ceb47c2f6d0f?q=80&w=2070&auto=format&fit=crop" 
-            alt="People volunteering together" 
-            className="w-full h-[400px] object-cover transition-transform duration-700 group-hover:scale-105"
-            referrerPolicy="no-referrer"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
-          <div className="absolute bottom-6 left-6 right-6 text-white text-left flex justify-between items-end">
-            <div>
-              <h3 className="text-2xl font-bold mb-1">Empowering Communities</h3>
-              <p className="text-slate-200">Connecting corporate resources with verified grassroots impact.</p>
-            </div>
-            <div className="hidden sm:flex space-x-4">
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2 text-center">
-                <p className="text-2xl font-bold text-white">500+</p>
-                <p className="text-xs text-slate-200 uppercase tracking-wider">NGOs</p>
-              </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2 text-center">
-                <p className="text-2xl font-bold text-white">2M+</p>
-                <p className="text-xs text-slate-200 uppercase tracking-wider">Hours</p>
-              </div>
-            </div>
-          </div>
+        {/* Main CSR Ecosystem Banner from SVG Asset */}
+        <div className="mx-auto max-w-6xl mb-12">
+          <CSREcosystemBanner />
         </div>
         
         {!user ? (
@@ -164,68 +145,116 @@ export function LandingPage() {
             <h2 className="text-2xl font-bold mb-8 text-slate-900">Select your portal to get started</h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-left max-w-6xl mx-auto">
               <button onClick={handleEmployeeLogin} className="block group text-left w-full">
-                <Card className="h-full transition-all hover:shadow-md hover:border-blue-300 border-slate-200">
-                  <CardHeader>
-                    <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                      <UserCircle className="h-6 w-6" />
+                <Card className="h-full transition-all hover:shadow-lg hover:border-blue-400 border-slate-200 overflow-hidden flex flex-col">
+                  <div className="h-32 bg-slate-100 relative overflow-hidden">
+                    <img 
+                      src="https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&w=600&q=80" 
+                      alt="Employee Volunteering" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
+                    <div className="absolute bottom-3 left-3 flex items-center gap-2 text-white">
+                      <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow">
+                        <UserCircle className="h-5 w-5" />
+                      </div>
+                      <span className="font-bold text-sm tracking-wide">Employee</span>
                     </div>
-                    <CardTitle className="text-lg">{t('landing.login.employee')}</CardTitle>
-                    <CardDescription>Discover projects & track impact.</CardDescription>
+                  </div>
+                  <CardHeader className="p-4">
+                    <CardTitle className="text-base">{t('landing.login.employee')}</CardTitle>
+                    <CardDescription className="text-xs">Discover projects, join challenges & track personal impact.</CardDescription>
                   </CardHeader>
                 </Card>
               </button>
+
               <div className="flex flex-col h-full">
                 <button onClick={signIn} className="block group flex-1 text-left w-full">
-                  <Card className="h-full transition-all hover:shadow-md hover:border-purple-300 border-slate-200">
-                    <CardHeader>
-                      <div className="h-12 w-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                        <Building2 className="h-6 w-6" />
+                  <Card className="h-full transition-all hover:shadow-lg hover:border-purple-400 border-slate-200 overflow-hidden flex flex-col">
+                    <div className="h-32 bg-slate-100 relative overflow-hidden">
+                      <img 
+                        src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80" 
+                        alt="Company Corporate Office" 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
+                      <div className="absolute bottom-3 left-3 flex items-center gap-2 text-white">
+                        <div className="h-8 w-8 bg-purple-600 rounded-lg flex items-center justify-center text-white shadow">
+                          <Building2 className="h-5 w-5" />
+                        </div>
+                        <span className="font-bold text-sm tracking-wide">Company</span>
                       </div>
-                      <CardTitle className="text-lg">{t('landing.login.company')}</CardTitle>
-                      <CardDescription>Manage engagement & matching.</CardDescription>
+                    </div>
+                    <CardHeader className="p-4">
+                      <CardTitle className="text-base">{t('landing.login.company')}</CardTitle>
+                      <CardDescription className="text-xs">Configure matching rules, grant budgets & ERG groups.</CardDescription>
                     </CardHeader>
                   </Card>
                 </button>
-                <Link to="/onboarding/company" className="text-xs text-purple-600 text-center mt-3 hover:underline">
+                <Link to="/onboarding/company" className="text-xs text-purple-600 text-center mt-3 hover:underline font-medium">
                   {t('landing.nav.onboard')} &rarr;
                 </Link>
               </div>
               
               <div className="flex flex-col h-full">
                 <button onClick={signIn} className="block group flex-1 text-left w-full">
-                  <Card className="h-full transition-all hover:shadow-md hover:border-green-300 border-slate-200">
-                    <CardHeader>
-                      <div className="h-12 w-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                        <HeartHandshake className="h-6 w-6" />
+                  <Card className="h-full transition-all hover:shadow-lg hover:border-emerald-400 border-slate-200 overflow-hidden flex flex-col">
+                    <div className="h-32 bg-slate-100 relative overflow-hidden">
+                      <img 
+                        src="https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=600&q=80" 
+                        alt="NGO Grassroots Work" 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
+                      <div className="absolute bottom-3 left-3 flex items-center gap-2 text-white">
+                        <div className="h-8 w-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white shadow">
+                          <HeartHandshake className="h-5 w-5" />
+                        </div>
+                        <span className="font-bold text-sm tracking-wide">NGO / Charity</span>
                       </div>
-                      <CardTitle className="text-lg">NGO / Charity</CardTitle>
-                      <CardDescription>Receive grants & volunteers.</CardDescription>
+                    </div>
+                    <CardHeader className="p-4">
+                      <CardTitle className="text-base">NGO / Charity</CardTitle>
+                      <CardDescription className="text-xs">Publish projects, request corporate grants & recruit skill-volunteers.</CardDescription>
                     </CardHeader>
                   </Card>
                 </button>
-                <Link to="/onboarding/charity" className="text-xs text-green-600 text-center mt-3 hover:underline">
+                <Link to="/onboarding/charity" className="text-xs text-emerald-600 text-center mt-3 hover:underline font-medium">
                   Register NGO &rarr;
                 </Link>
               </div>
+
               <button onClick={signIn} className="block group text-left w-full">
-                <Card className="h-full transition-all hover:shadow-md hover:border-slate-400 border-slate-200">
-                  <CardHeader>
-                    <div className="h-12 w-12 bg-slate-100 text-slate-700 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                      <LayoutDashboard className="h-6 w-6" />
+                <Card className="h-full transition-all hover:shadow-lg hover:border-slate-400 border-slate-200 overflow-hidden flex flex-col">
+                  <div className="h-32 bg-slate-100 relative overflow-hidden">
+                    <img 
+                      src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80" 
+                      alt="Platform Analytics" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
+                    <div className="absolute bottom-3 left-3 flex items-center gap-2 text-white">
+                      <div className="h-8 w-8 bg-slate-800 rounded-lg flex items-center justify-center text-white shadow">
+                        <LayoutDashboard className="h-5 w-5" />
+                      </div>
+                      <span className="font-bold text-sm tracking-wide">Platform Admin</span>
                     </div>
-                    <CardTitle className="text-lg">Platform Admin</CardTitle>
-                    <CardDescription>Onboard charities & partners.</CardDescription>
+                  </div>
+                  <CardHeader className="p-4">
+                    <CardTitle className="text-base">Platform Admin</CardTitle>
+                    <CardDescription className="text-xs">Verify NGO credentials, monitor global CSR analytics & compliance.</CardDescription>
                   </CardHeader>
                 </Card>
               </button>
             </div>
             <div className="mt-8 flex justify-center">
-              <Button variant="ghost" onClick={signInAsDemo} className="text-slate-500">
-                View Demo Mode
+              <Button variant="ghost" onClick={signInAsDemo} className="text-slate-500 hover:text-slate-900 hover:bg-slate-100">
+                Explore Demo Mode
               </Button>
             </div>
-
-            
           </div>
         ) : (
           <div className="p-8 bg-white rounded-2xl shadow-sm border border-slate-200 mt-8">
@@ -246,6 +275,121 @@ export function LandingPage() {
             )}
           </div>
         )}
+      </section>
+
+      {/* Impact Pillars in Action Showcase */}
+      <section className="py-16 bg-slate-900 text-white border-t border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 mb-3">Impact Focus Areas</Badge>
+            <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Grassroots Action Across Critical UN SDGs</h2>
+            <p className="mt-3 text-slate-300 max-w-2xl mx-auto text-sm sm:text-base">
+              Empowering companies and non-profits to measure tangible social and environmental progress in real time.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="group rounded-xl overflow-hidden bg-slate-800 border border-slate-700 hover:border-indigo-500 transition-all duration-300">
+              <div className="h-48 overflow-hidden relative">
+                <img 
+                  src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80" 
+                  alt="Reforestation Drive" 
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+                <Badge className="absolute top-3 left-3 bg-emerald-600/90 text-white border-0 text-xs font-semibold">
+                  SDG 15: Life on Land
+                </Badge>
+              </div>
+              <div className="p-5">
+                <h3 className="font-bold text-lg text-white mb-2">Urban Afforestation</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Miyawaki micro-forest planting drives restoring native biodiversity and capturing carbon in dense urban zones.
+                </p>
+              </div>
+            </div>
+
+            <div className="group rounded-xl overflow-hidden bg-slate-800 border border-slate-700 hover:border-indigo-500 transition-all duration-300">
+              <div className="h-48 overflow-hidden relative">
+                <img 
+                  src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80" 
+                  alt="Digital Literacy Class" 
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+                <Badge className="absolute top-3 left-3 bg-blue-600/90 text-white border-0 text-xs font-semibold">
+                  SDG 4: Quality Education
+                </Badge>
+              </div>
+              <div className="p-5">
+                <h3 className="font-bold text-lg text-white mb-2">Digital Literacy</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Employee tech volunteering bringing coding, AI literacy, and computer hardware to underfunded rural schools.
+                </p>
+              </div>
+            </div>
+
+            <div className="group rounded-xl overflow-hidden bg-slate-800 border border-slate-700 hover:border-indigo-500 transition-all duration-300">
+              <div className="h-48 overflow-hidden relative">
+                <img 
+                  src="https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80" 
+                  alt="River Cleanup Drive" 
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+                <Badge className="absolute top-3 left-3 bg-cyan-600/90 text-white border-0 text-xs font-semibold">
+                  SDG 6: Clean Water
+                </Badge>
+              </div>
+              <div className="p-5">
+                <h3 className="font-bold text-lg text-white mb-2">Water Sanitation</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Community riverfront cleanup campaigns, water filtration kit installations, and aquatic health testing.
+                </p>
+              </div>
+            </div>
+
+            <div className="group rounded-xl overflow-hidden bg-slate-800 border border-slate-700 hover:border-indigo-500 transition-all duration-300">
+              <div className="h-48 overflow-hidden relative">
+                <img 
+                  src="https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=800&q=80" 
+                  alt="Solar Energy Installation" 
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+                <Badge className="absolute top-3 left-3 bg-amber-600/90 text-white border-0 text-xs font-semibold">
+                  SDG 7: Clean Energy
+                </Badge>
+              </div>
+              <div className="p-5">
+                <h3 className="font-bold text-lg text-white mb-2">Rural Micro-Grids</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Corporate grant-funded solar micro-grids bringing uninterrupted electrification to off-grid tribal villages.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Community Updates & CSR News Feed */}
+      <section className="py-16 bg-slate-100 border-t border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <Badge variant="outline" className="mb-2 bg-white text-indigo-700 border-indigo-200">Live Impact Stream</Badge>
+            <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Community CSR Updates & Highlights</h2>
+            <p className="mt-2 text-slate-600 text-sm max-w-xl mx-auto">
+              Real stories, campaign milestones, and grant impact reports shared directly by partner non-profits.
+            </p>
+          </div>
+          <div className="max-w-4xl mx-auto">
+            <CSRNewsFeed isAdmin={false} />
+          </div>
+        </div>
       </section>
 
       {/* Why, How, What Section */}

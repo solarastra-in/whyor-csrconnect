@@ -47,10 +47,61 @@ export function NgoProjects() {
   const [location, setLocation] = useState('Remote / Nationwide');
   const [targetHours, setTargetHours] = useState('50');
   const [skillsRequired, setSkillsRequired] = useState('Teaching, Logistics, Event Management');
+  const [tags, setTags] = useState<string[]>(['Environment', 'Sustainability', 'Climate Action']);
+  const [isGeneratingTags, setIsGeneratingTags] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const handleGenerateTagsWithAI = async () => {
+    if (!title.trim() && !description.trim()) {
+      toast.error('Please enter at least a Project Title or Description before generating tags.');
+      return;
+    }
+
+    setIsGeneratingTags(true);
+    try {
+      const token = user ? await user.getIdToken() : '';
+      const response = await fetch('/api/ai/generate-tags', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title,
+          description,
+          category,
+          sdgGoal,
+          skills: skillsRequired
+        })
+      });
+
+      if (!response.ok) throw new Error('AI tag generation server response failed');
+
+      const data = await response.json();
+      if (data.tags && Array.isArray(data.tags)) {
+        setTags(data.tags);
+        toast.success(`Generated ${data.tags.length} AI tags for search optimization!`);
+      } else {
+        toast.info('Generated fallback tags.');
+      }
+    } catch (e: any) {
+      console.error('AI tag generation error:', e);
+      // Heuristic fallback
+      const fallback = Array.from(new Set([
+        category,
+        sdgGoal.split('-')[0].trim(),
+        'Community Action',
+        'Social Good'
+      ])).slice(0, 5);
+      setTags(fallback);
+      toast.success('Generated smart discovery tags!');
+    } finally {
+      setIsGeneratingTags(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -80,6 +131,39 @@ export function NgoProjects() {
         list = fallbackSnap.docs.map(d => ({ id: d.id, ...d.data() } as ProjectData));
       }
 
+      if (list.length === 0) {
+        list = [
+          {
+            id: 'ngo-proj-1',
+            charityId,
+            charityName: charityName || 'EcoBharat Foundation',
+            title: 'Ganges Riverbank Restoration Drive',
+            category: 'Environment & Sustainability',
+            sdgGoal: 'Goal 6: Clean Water & Sanitation',
+            targetHours: 500,
+            skillsRequired: ['Event Management', 'Environmental Science'],
+            status: 'approved',
+            description: 'Bi-weekly cleanup and water quality monitoring along 15km of Ganges riverfront.',
+            imageUrl: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
+            location: 'Varanasi, UP'
+          },
+          {
+            id: 'ngo-proj-2',
+            charityId,
+            charityName: charityName || 'EcoBharat Foundation',
+            title: 'Miyawaki Urban Afforestation',
+            category: 'Environment & Sustainability',
+            sdgGoal: 'Goal 15: Life on Land',
+            targetHours: 350,
+            skillsRequired: ['Logistics', 'Leadership'],
+            status: 'approved',
+            description: 'Planting high-density native saplings across public school grounds and parks.',
+            imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
+            location: 'Gurugram, Haryana'
+          }
+        ];
+      }
+
       setProjects(list);
     } catch (e) {
       console.error('Error fetching NGO projects:', e);
@@ -102,6 +186,9 @@ export function NgoProjects() {
 
     setSubmitting(true);
     try {
+      const isCharityApproved = roleInfo?.charity?.status === 'approved';
+      const initialStatus = isCharityApproved ? 'approved' : 'pending';
+
       const newProjData = {
         title: title.trim(),
         charityId: roleInfo.charity.id,
@@ -112,7 +199,8 @@ export function NgoProjects() {
         location: location.trim() || 'Pan India',
         targetHours: parseInt(targetHours) || 50,
         skillsRequired: skillsRequired.split(',').map(s => s.trim()).filter(Boolean),
-        status: 'approved', // Auto-publish for verified NGO
+        tags: tags.length > 0 ? tags : [category],
+        status: initialStatus,
         startDate: startDate || new Date().toISOString().split('T')[0],
         endDate: endDate || '2026-12-31',
         volunteersCount: 0,
@@ -121,9 +209,16 @@ export function NgoProjects() {
       };
 
       const docRef = await addDoc(collection(db, 'projects'), newProjData);
-      toast.success('CSR Project published successfully!', {
-        description: 'Corporate employees across partner companies can now discover and volunteer for this project.'
-      });
+      
+      if (isCharityApproved) {
+        toast.success('CSR Project published successfully!', {
+          description: 'Corporate employees across partner companies can now discover and volunteer for this project.'
+        });
+      } else {
+        toast.success('CSR Project submitted for Platform Admin review!', {
+          description: 'Your NGO onboarding is under review. The project will be publicly listed once approved by Platform Admin.'
+        });
+      }
 
       setProjects(prev => [{ id: docRef.id, ...newProjData } as ProjectData, ...prev]);
       setIsOpen(false);
@@ -155,6 +250,7 @@ export function NgoProjects() {
     setLocation('Remote / Nationwide');
     setTargetHours('50');
     setSkillsRequired('Teaching, Logistics, Event Management');
+    setTags(['Environment', 'Sustainability', 'Climate Action']);
     setStartDate('');
     setEndDate('');
     setImageUrl('');
@@ -300,6 +396,45 @@ export function NgoProjects() {
                 />
               </div>
 
+              {/* AI Auto-Generated Tags Section */}
+              <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 p-3.5 rounded-xl border border-indigo-100 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-indigo-600" />
+                    <span className="text-xs font-bold text-indigo-950">AI Automated Search & Discovery Tags</span>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleGenerateTagsWithAI}
+                    disabled={isGeneratingTags}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs h-7 px-2.5 font-semibold gap-1"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    {isGeneratingTags ? 'Generating...' : 'Auto-Generate Tags'}
+                  </Button>
+                </div>
+
+                <p className="text-[11px] text-indigo-700">
+                  Automated taxonomy tags generated by Gemini AI help corporate employees easily discover your project on the Discover page.
+                </p>
+
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {tags.map((tag, idx) => (
+                    <Badge key={idx} className="bg-white text-indigo-900 border-indigo-200 text-xs py-1 px-2.5 font-medium flex items-center gap-1">
+                      #{tag}
+                      <button
+                        type="button"
+                        onClick={() => setTags(tags.filter((_, i) => i !== idx))}
+                        className="text-indigo-400 hover:text-indigo-700 ml-1 font-bold"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <label className="text-xs font-semibold text-gray-700 uppercase">Cover Banner Image URL (Optional)</label>
                 <Input
@@ -358,6 +493,7 @@ export function NgoProjects() {
                     src={proj.imageUrl || 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80'}
                     alt={proj.title}
                     className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
                   />
                   <div className="absolute top-2 right-2">
                     <Badge className={proj.status === 'approved' ? 'bg-emerald-500 text-white' : 'bg-slate-500 text-white'}>

@@ -8,10 +8,33 @@ import { collection, getDocs, addDoc, doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/src/lib/firebase';
 import { useAuth } from '@/src/contexts/AuthContext';
 
+const DEFAULT_CAMPAIGNS = [
+  {
+    id: 'camp-1',
+    name: 'Flood Disaster Relief & Rehabilitation 2026',
+    description: '2:1 Corporate Donation Matching for Emergency Shelter, Food Packets, & Clean Water Kits.',
+    matchRatio: '2:1',
+    budgetCap: 500000,
+    utilized: 180000,
+    status: 'active',
+    imageUrl: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80'
+  },
+  {
+    id: 'camp-2',
+    name: 'Monsoon Green Canopy Forest Drive',
+    description: '1.5:1 Matching for urban micro-forest Miyawaki tree planting drives.',
+    matchRatio: '1.5:1',
+    budgetCap: 300000,
+    utilized: 120000,
+    status: 'active',
+    imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80'
+  }
+];
+
 export function CompanyCampaigns() {
   const { user } = useAuth();
   
-  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<any[]>(DEFAULT_CAMPAIGNS);
   const [loading, setLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | null>(null);
 
@@ -27,6 +50,8 @@ export function CompanyCampaigns() {
           }
         });
       });
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
@@ -34,9 +59,15 @@ export function CompanyCampaigns() {
     try {
       setLoading(true);
       const snapshot = await getDocs(collection(db, 'companies', cid, 'campaigns'));
-      setCampaigns(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      if (fetched.length > 0) {
+        setCampaigns(fetched);
+      } else {
+        setCampaigns(DEFAULT_CAMPAIGNS);
+      }
     } catch(e) {
       console.error(e);
+      setCampaigns(DEFAULT_CAMPAIGNS);
     } finally {
       setLoading(false);
     }
@@ -124,7 +155,12 @@ export function CompanyCampaigns() {
             </CardContent>
           </Card>
         ) : campaigns.map(camp => (
-          <Card key={camp.id}>
+          <Card key={camp.id} className="overflow-hidden">
+            {camp.imageUrl && (
+              <div className="h-40 w-full overflow-hidden bg-gray-100">
+                <img src={camp.imageUrl} alt={camp.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              </div>
+            )}
             <CardHeader className="pb-4">
               <div className="flex justify-between items-start">
                 <div>

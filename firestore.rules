@@ -39,8 +39,11 @@ service cloud.firestore {
     }
     
     function isNgoAdmin(charityId) {
-      return isSignedIn() && (
-        request.auth.token.email in get(/databases/$(database)/documents/charities/$(charityId)).data.adminEmails
+      return isSignedIn() && exists(/databases/$(database)/documents/charities/$(charityId)) && (
+        (get(/databases/$(database)/documents/charities/$(charityId)).data.adminEmails != null && 
+         request.auth.token.email in get(/databases/$(database)/documents/charities/$(charityId)).data.adminEmails) ||
+        (get(/databases/$(database)/documents/charities/$(charityId)).data.submittedBy != null && 
+         request.auth.uid == get(/databases/$(database)/documents/charities/$(charityId)).data.submittedBy)
       );
     }
   
@@ -138,15 +141,22 @@ service cloud.firestore {
     }
 
     match /payments/{paymentId} {
-      allow read: if isPlatformStaff() || (isSignedIn() && (resource.data.companyId == request.auth.token.companyId || resource.data.ngoId == request.auth.uid || resource.data.charityId == request.auth.uid));
+      allow read: if isPlatformStaff() || (isSignedIn() && (
+        resource.data.companyId == request.auth.token.companyId || 
+        (resource.data.ngoId != null && isNgoAdmin(resource.data.ngoId)) || 
+        (resource.data.charityId != null && isNgoAdmin(resource.data.charityId))
+      ));
       allow create: if isCompanyMember(request.resource.data.companyId) || isPlatformAdmin();
       allow update: if isPlatformAdmin() || isPlatformStaff();
     }
 
     match /grants/{grantId} {
       allow read: if isSignedIn();
-      allow create: if isCompanyMember(request.resource.data.companyId) || (isSignedIn() && exists(/databases/$(database)/documents/charities/$(request.resource.data.ngoId)) && request.auth.token.email in get(/databases/$(database)/documents/charities/$(request.resource.data.ngoId)).data.adminEmails);
-      allow update, delete: if isPlatformAdmin() || isCompanyMember(resource.data.companyId);
+      allow create: if isCompanyMember(request.resource.data.companyId) || 
+        request.resource.data.companyId == 'general_pool' ||
+        (isSignedIn() && isNgoAdmin(request.resource.data.ngoId));
+      allow update, delete: if isPlatformAdmin() || isCompanyMember(resource.data.companyId) ||
+        (resource.data.companyId == 'general_pool' && (isPlatformAdmin() || isPlatformStaff()));
     }
   }
 }

@@ -78,13 +78,16 @@ export function CharityOnboarding() {
       }
       
       await addDoc(collection(db, 'charities'), {
-        name: formData.orgName || formData.name,
-        focus: formData.focusArea,
-        location: formData.headquarters,
+        name: formData.name,
+        focus: formData.rawDescription ? (formData.rawDescription.slice(0, 50) + '...') : 'Community Development',
+        location: `${formData.city}, ${formData.state}`,
+        city: formData.city,
+        state: formData.state,
+        country: formData.country,
         website: formData.website,
-        summary: formData.rawDescription,
+        summary: formData.aiPurpose || formData.rawDescription,
         status: 'pending_verification',
-        promotors: user ? user.email : '',
+        promotors: formData.promoters || (user ? user.email : ''),
         submittedBy: user ? user.uid : '',
         adminEmails: user && user.email ? [user.email.toLowerCase()] : [],
         documentUrl,

@@ -14,7 +14,56 @@ import { collection, getDocs, doc, updateDoc, addDoc } from 'firebase/firestore'
 import { db } from '@/src/lib/firebase';
 import { GlobalCSRMap } from '@/src/components/GlobalCSRMap';
 
-const mockCharities: any[] = [];
+const mockCharities: any[] = [
+  {
+    id: 'charity-1',
+    name: 'EcoBharat Foundation',
+    location: 'Varanasi, Uttar Pradesh',
+    focus: 'Environment & Water',
+    status: 'approved',
+    regNumber: 'NGO-88493-2021',
+    logoUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=100&auto=format&fit=crop&q=80',
+    bannerUrl: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
+    description: 'Dedicated to riverbank restoration, urban Miyawaki micro-forest planting, and water quality conservation.',
+    contactEmail: 'contact@ecobharat.org'
+  },
+  {
+    id: 'charity-2',
+    name: 'Shiksha India Trust',
+    location: 'Bengaluru, Karnataka',
+    focus: 'Education & Tech',
+    status: 'approved',
+    regNumber: 'NGO-12349-2019',
+    logoUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=100&auto=format&fit=crop&q=80',
+    bannerUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80',
+    description: 'Providing computer labs, digital literacy, and STEM mentorship to rural high school students.',
+    contactEmail: 'info@shikshaindia.org'
+  },
+  {
+    id: 'charity-3',
+    name: 'Green Canopy Initiative',
+    location: 'Gurugram, Haryana',
+    focus: 'Climate & Afforestation',
+    status: 'approved',
+    regNumber: 'NGO-55821-2020',
+    logoUrl: 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=100&auto=format&fit=crop&q=80',
+    bannerUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
+    description: 'Specializes in high-density native afforestation and urban air quality regeneration projects.',
+    contactEmail: 'tree@greencanopy.org'
+  },
+  {
+    id: 'charity-4',
+    name: 'Surya Jyoti Alliance',
+    location: 'Ranchi, Jharkhand',
+    focus: 'Clean Energy',
+    status: 'pending_verification',
+    regNumber: 'NGO-90112-2022',
+    logoUrl: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?w=100&auto=format&fit=crop&q=80',
+    bannerUrl: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=800&q=80',
+    description: 'Deploying standalone solar micro-grids for off-grid tribal villages.',
+    contactEmail: 'solar@suryajyoti.org'
+  }
+];
 
 export function Charities() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -260,8 +309,12 @@ export function Charities() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 bg-indigo-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Building2 className="h-5 w-5 text-indigo-600" />
+                            <div className="h-10 w-10 bg-indigo-50 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden border border-indigo-100">
+                              {charity.logoUrl ? (
+                                <img src={charity.logoUrl} alt={charity.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                              ) : (
+                                <Building2 className="h-5 w-5 text-indigo-600" />
+                              )}
                             </div>
                             <div>
                               <p className="font-medium text-gray-900">{charity.name}</p>

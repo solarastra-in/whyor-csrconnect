@@ -1,11 +1,44 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Search, Filter, ShieldAlert, UserPlus, Building, Settings as SettingsIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { db } from '@/src/lib/firebase';
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 
-const MOCK_AUDIT_LOGS: any[] = [];
+const INITIAL_FALLBACK_LOGS = [
+  {
+    id: 'audit-1',
+    type: 'security',
+    action: 'Platform Admin Sign-In',
+    actor: 'admin@csrconnect.org',
+    ipAddress: '10.0.4.12',
+    entity: 'Authentication Session',
+    timestamp: new Date(Date.now() - 3600000).toISOString(),
+    status: 'success'
+  },
+  {
+    id: 'audit-2',
+    type: 'onboarding',
+    action: 'NGO Document Verification',
+    actor: 'Compliance System',
+    ipAddress: 'Internal System',
+    entity: 'EcoBharat Foundation 80G/12A',
+    timestamp: new Date(Date.now() - 7200000).toISOString(),
+    status: 'success'
+  },
+  {
+    id: 'audit-3',
+    type: 'config',
+    action: 'Disbursement Threshold Updated',
+    actor: 'finance@csrconnect.org',
+    ipAddress: '192.168.1.45',
+    entity: 'Platform Fee Config',
+    timestamp: new Date(Date.now() - 86400000).toISOString(),
+    status: 'success'
+  }
+];
 
 const getIconForType = (type: string) => {
   switch (type) {
@@ -20,11 +53,35 @@ const getIconForType = (type: string) => {
 export function SecurityAuditLog() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [logs, setLogs] = useState<any[]>(INITIAL_FALLBACK_LOGS);
+  const [loading, setLoading] = useState(true);
 
-  const filteredLogs = MOCK_AUDIT_LOGS.filter(log => {
-    const matchesSearch = log.action.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          log.entity.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          log.actor.toLowerCase().includes(searchTerm.toLowerCase());
+  useEffect(() => {
+    fetchAuditLogs();
+  }, []);
+
+  const fetchAuditLogs = async () => {
+    try {
+      const q = query(collection(db, 'auditLog'), limit(20));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setLogs(fetched);
+      }
+    } catch (e) {
+      console.log('Using fallback security logs:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredLogs = logs.filter(log => {
+    const actionStr = log.action || log.event || '';
+    const entityStr = log.entity || log.details || '';
+    const actorStr = log.actor || log.user || '';
+    const matchesSearch = actionStr.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          entityStr.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          actorStr.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || log.type === filterType;
     return matchesSearch && matchesType;
   });

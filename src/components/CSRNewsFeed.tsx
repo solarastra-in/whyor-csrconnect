@@ -15,9 +15,45 @@ interface NewsItem {
   date: string;
   author: string;
   likes: number;
+  image?: string;
+  authorAvatar?: string;
 }
 
-const mockNews: NewsItem[] = [];
+const mockNews: NewsItem[] = [
+  {
+    id: 'n-1',
+    title: 'Clean Ganga Initiative Reaches 50 Tons Waste Recycled Milestone!',
+    content: 'Thanks to over 350 corporate volunteers across 12 companies, our riverbank restoration drive successfully removed and segregated 50 tons of plastic waste along the Ganges in Varanasi.',
+    type: 'success',
+    date: '2 hours ago',
+    author: 'EcoBharat Team',
+    likes: 42,
+    image: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
+    authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'n-2',
+    title: 'Q3 Corporate Donation Matching Limit Increased to 2:1',
+    content: 'We are excited to announce enhanced 2:1 matching for all employee contributions toward rural education & digital literacy campaigns during Q3.',
+    type: 'announcement',
+    date: '1 day ago',
+    author: 'CSR Council',
+    likes: 28,
+    image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80',
+    authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'n-3',
+    title: '500 Saplings Planted in Gurugram Urban Afforestation Drive',
+    content: 'Volunteers planted 500 native trees using the Miyawaki technique. Growth tracking metrics and carbon offset data will be uploaded to employee impact dashboards next week.',
+    type: 'update',
+    date: '2 days ago',
+    author: 'Green Canopy Initiative',
+    likes: 35,
+    image: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
+    authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80'
+  }
+];
 
 export function CSRNewsFeed({ isAdmin = false }: { isAdmin?: boolean }) {
   const [news, setNews] = useState<NewsItem[]>(mockNews);
@@ -141,9 +177,19 @@ export function CSRNewsFeed({ isAdmin = false }: { isAdmin?: boolean }) {
               </div>
               <h4 className="font-bold text-gray-900 mb-1">{item.title}</h4>
               <p className="text-sm text-gray-600 mb-3 line-clamp-3">{item.content}</p>
+              {item.image && (
+                <div className="h-40 w-full overflow-hidden rounded-md mb-3">
+                  <img src={item.image} alt={item.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                </div>
+              )}
               
               <div className="flex items-center justify-between border-t border-gray-50 pt-3 mt-1">
-                <span className="text-xs font-medium text-gray-500">By {item.author}</span>
+                <div className="flex items-center gap-2">
+                  {item.authorAvatar && (
+                    <img src={item.authorAvatar} alt={item.author} className="w-5 h-5 rounded-full object-cover" referrerPolicy="no-referrer" />
+                  )}
+                  <span className="text-xs font-medium text-gray-500">By {item.author}</span>
+                </div>
                 <div className="flex items-center gap-3">
                   <button onClick={() => handleLike(item.id)} className="flex items-center gap-1 text-xs text-gray-500 hover:text-indigo-600 transition-colors">
                     <Heart className="w-3.5 h-3.5" /> {item.likes}

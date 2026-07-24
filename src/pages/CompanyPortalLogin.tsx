@@ -104,7 +104,7 @@ export function CompanyPortalLogin() {
       <div className="flex-1 flex flex-col items-center justify-center p-4">
         <Card className="w-full max-w-md overflow-hidden shadow-xl border-0">
           <div className="p-8 text-center text-white" style={{ backgroundColor: (company as any).primaryColor || '#4f46e5' }}>
-            {(company as any).logoUrl ? <img src={(company as any).logoUrl} alt={company.name} className="h-16 mx-auto mb-4 object-contain" /> : <Building2 className="w-16 h-16 mx-auto mb-4 opacity-90" />}
+            {(company as any).logoUrl ? <img src={(company as any).logoUrl} alt={company.name} className="h-16 mx-auto mb-4 object-contain" referrerPolicy="no-referrer" /> : <Building2 className="w-16 h-16 mx-auto mb-4 opacity-90" />}
             <h1 className="text-3xl font-bold tracking-tight">{company.name}</h1>
             <p className="mt-2 text-indigo-100">Employee Impact Portal</p>
           </div>

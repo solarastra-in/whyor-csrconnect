@@ -3,6 +3,7 @@ import { LayoutDashboard, Users, Home, UserCircle, LogOut, FileText, Settings, H
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { NotificationDrawer } from './NotificationDrawer';
+import { LanguageSwitcher } from '@/src/components/LanguageSwitcher';
 import { useEffect, useState } from 'react';
 import { getUserRoleInfo, UserRoleInfo } from '@/src/lib/userRole';
 import { useTheme } from '@/src/lib/useTheme';
@@ -89,7 +90,8 @@ export function NgoLayout() {
         </div>
       </aside>
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50 dark:bg-slate-950">
-        <header className="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-end px-6 shadow-sm z-10 gap-4">
+        <header className="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-end px-6 shadow-sm z-10 gap-3">
+          <LanguageSwitcher />
           <button
             onClick={toggleTheme}
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 dark:text-gray-400 transition-colors"

@@ -45,9 +45,35 @@ export function CompanyGrants() {
     const cid = companyId || roleInfo?.company?.id;
     if (!cid) return;
     try {
-      const q = query(collection(db, 'grants'), where('companyId', '==', cid), orderBy('date', 'desc'));
-      const snapshot = await getDocs(q);
-      const fetchedGrants = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const qTargeted = query(collection(db, 'grants'), where('companyId', '==', cid));
+      const qGeneral = query(collection(db, 'grants'), where('companyId', '==', 'general_pool'));
+      
+      const [snapTargeted, snapGeneral] = await Promise.all([
+        getDocs(qTargeted),
+        getDocs(qGeneral)
+      ]);
+
+      const allDocs = [...snapTargeted.docs, ...snapGeneral.docs];
+      const uniqueDocsMap = new Map();
+      allDocs.forEach(doc => {
+        uniqueDocsMap.set(doc.id, { id: doc.id, ...doc.data() });
+      });
+
+      const fetchedGrants = Array.from(uniqueDocsMap.values()).map((grant: any) => ({
+        ...grant,
+        title: grant.title || grant.project || 'Grant Application',
+        ngoName: grant.ngoName || grant.ngo || 'Partner NGO',
+        category: grant.sdgCategory || grant.category || 'General CSR',
+        status: (grant.status === 'pending_review' ? 'pending' : grant.status) || 'pending'
+      }));
+
+      // Sort by creation date descending
+      fetchedGrants.sort((a, b) => {
+        const timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.date || 0).getTime();
+        const timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.date || 0).getTime();
+        return timeB - timeA;
+      });
+
       setGrants(fetchedGrants);
     } catch (error) {
       console.error("Error fetching grants:", error);
@@ -63,10 +89,17 @@ export function CompanyGrants() {
     }
     try {
       await addDoc(collection(db, 'grants'), {
-        ...newGrant,
+        title: newGrant.project,
+        project: newGrant.project,
+        ngoName: newGrant.ngo,
+        ngo: newGrant.ngo,
+        category: newGrant.category,
+        sdgCategory: newGrant.category,
+        amountRequested: newGrant.amountRequested,
         status: 'pending',
         date: new Date().toISOString(),
-        companyId: roleInfo?.company?.id || ''
+        companyId: roleInfo?.company?.id || '',
+        companyName: roleInfo?.company?.name || 'Corporate Partner'
       });
       toast.success('Grant cycle created!');
       setIsCreating(false);
@@ -76,40 +109,53 @@ export function CompanyGrants() {
     }
   };
 
-  
   const openReview = async (grant: any) => {
     setReviewGrantId(grant.id);
     setPaymentAmount(grant.amountRequested);
     
-    // Attempt to find charity by name (in a real app, grant would have charityId)
-    import('firebase/firestore').then(({ collection, query, where, getDocs }) => {
-      const q = query(collection(db, 'charities'), where('name', '==', grant.ngo));
-      getDocs(q).then(snap => {
+    try {
+      if (grant.ngoId) {
+        const docSnap = await getDocs(query(collection(db, 'charities'), where('__name__', '==', grant.ngoId)));
+        if (!docSnap.empty) {
+          setSelectedCharityDetails({ id: docSnap.docs[0].id, ...docSnap.docs[0].data() });
+          return;
+        }
+      }
+      const ngoQueryName = grant.ngoName || grant.ngo;
+      if (ngoQueryName) {
+        const q = query(collection(db, 'charities'), where('name', '==', ngoQueryName));
+        const snap = await getDocs(q);
         if (!snap.empty) {
           setSelectedCharityDetails({ id: snap.docs[0].id, ...snap.docs[0].data() });
         } else {
           setSelectedCharityDetails(null);
         }
-      });
-    });
+      } else {
+        setSelectedCharityDetails(null);
+      }
+    } catch (e) {
+      console.error('Error opening grant review:', e);
+      setSelectedCharityDetails(null);
+    }
   };
-  
-  
+
   const handleApproveGrant = async () => {
     if (!reviewGrantId) return;
     try {
       await updateDoc(doc(db, 'grants', reviewGrantId), { status: 'approved' });
       
       const grant = grants.find(g => g.id === reviewGrantId);
+      const targetNgoId = selectedCharityDetails?.id || grant?.ngoId || '';
       
       // Create payment record
       await addDoc(collection(db, 'payments'), {
         referenceId: reviewGrantId,
         amount: paymentAmount,
-        ngoId: selectedCharityDetails?.id || '',
-        ngoName: grant?.ngo || 'Unknown NGO',
-        companyId: roleInfo?.company?.id || '',
-        companyName: roleInfo?.company?.name || 'Company',
+        ngoId: targetNgoId,
+        charityId: targetNgoId,
+        ngoName: grant?.ngoName || grant?.ngo || selectedCharityDetails?.name || 'Partner NGO',
+        companyId: roleInfo?.company?.id || grant?.companyId || '',
+        companyName: roleInfo?.company?.name || 'Corporate Partner',
         status: 'pending',
         date: new Date().toISOString(),
         paymentMode: selectedCharityDetails?.paymentConfig?.paymentMode || 'direct',
@@ -292,8 +338,8 @@ export function CompanyGrants() {
                 <TableRow key={grant.id}>
                   <TableCell className="font-mono text-xs">{grant.id}</TableCell>
                   <TableCell>
-                    <div className="font-medium text-gray-900">{grant.ngo}</div>
-                    <div className="text-xs text-gray-500">{grant.project}</div>
+                    <div className="font-medium text-gray-900">{grant.ngoName || grant.ngo || 'Partner NGO'}</div>
+                    <div className="text-xs text-gray-500">{grant.title || grant.project || 'Grant Proposal'}</div>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{grant.category}</Badge>
